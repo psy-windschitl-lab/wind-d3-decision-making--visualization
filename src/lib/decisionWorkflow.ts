@@ -1,8 +1,13 @@
-type DecisionOption = { id: string; label: string };
+type DecisionOption = { id: string; label: string; weight?: number };
+type DecisionFactor = { id: string; label: string; weight: number };
+type DecisionScores = Record<string, Record<string, number>>;
 
 type DecisionData = {
   options: DecisionOption[];
+  factors: DecisionFactor[];
+  scores: DecisionScores;
   waddScores: Record<string, number>;
+  layoutName?: string | null;
 };
 
 type AttachParams = {
@@ -13,6 +18,20 @@ type AttachParams = {
 };
 
 const STORAGE_KEY = "decision-layout-selection";
+
+type StoredDecisionPayload = {
+  optionId: string;
+  option: string;
+  waddScore: number;
+  relativeOptimality: { rank: number; total: number };
+  layoutName?: string | null;
+  dataset: {
+    options: DecisionOption[];
+    factors: DecisionFactor[];
+    scores: DecisionScores;
+    waddScores: Record<string, number>;
+  };
+};
 
 type ModalAction = {
   label: string;
@@ -84,7 +103,7 @@ function openModal({ title, body, bodyNode, actions = [] }: ModalParams): ModalR
   return { close, overlay, dialog };
 }
 
-function storeDecision(payload: { option: string; waddScore: number; relativeOptimality: { rank: number; total: number } }) {
+function storeDecision(payload: StoredDecisionPayload) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch {
@@ -97,6 +116,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
 
   const actionWrap = document.createElement("div");
   actionWrap.className = "decision-action";
+  let decisionLocked = false;
   let activeOptionsClose: (() => void) | null = null;
   let peekButton: HTMLButtonElement | null = null;
   let minimizedModal: ModalRef | null = null;
@@ -116,6 +136,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
   trigger.textContent = "Make Decision";
 
   trigger.addEventListener("click", () => {
+    if (decisionLocked) return;
     const confirmModal = openModal({
       title: "Are you sure?",
       body: "Review your weights and scores before locking in a decision.",
@@ -189,6 +210,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
   }
 
   function restoreSelectionModal() {
+    if (decisionLocked) return;
     const modal = minimizedModal;
     if (!modal) return;
     const { overlay, dialog } = modal;
@@ -220,6 +242,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
   }
 
   function openSelectionModal() {
+    if (decisionLocked) return;
     const decisionData = getDecisionData();
     const optionGrid = document.createElement("div");
     optionGrid.className = "decision-option-list";
@@ -270,6 +293,9 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
 
   function finalizeDecision(optionId: string) {
     closeSelectionModal();
+    decisionLocked = true;
+    trigger.disabled = true;
+    trigger.textContent = "Decision locked";
     const decisionData = getDecisionData();
     const waddScores = decisionData.waddScores;
     const sorted = [...decisionData.options]
@@ -280,27 +306,34 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
     if (!chosen) return;
     const wadd = waddScores[optionId] ?? 0;
     storeDecision({
+      optionId: chosen.id,
       option: chosen.label,
       waddScore: Number(wadd.toFixed(2)),
       relativeOptimality: { rank: position, total },
+      layoutName: decisionData.layoutName ?? null,
+      dataset: {
+        options: decisionData.options.map(opt => ({
+          id: opt.id,
+          label: opt.label,
+          weight: opt.weight,
+        })),
+        factors: (decisionData.factors ?? []).map(factor => ({
+          id: factor.id,
+          label: factor.label,
+          weight: factor.weight,
+        })),
+        scores: decisionData.scores ?? {},
+        waddScores,
+      },
     });
 
     const resultModal = openModal({
       title: "Decision recorded",
-      body: `Saved "${chosen.label}" with a WADD score of ${wadd.toFixed(2)}.`,
+      body: `Saved "${chosen.label}" with a WADD score of ${wadd.toFixed(2)}. You can keep exploring the layout, but the decision is locked. To proceed, hit the "Next" button in the bottom right.`,
       actions: [
         {
-          label: "Modify decision",
+          label: "Got it",
           onClick: () => resultModal.close(),
-        },
-        {
-          label: "Restart page",
-          variant: "secondary",
-          onClick: () => {
-            resultModal.close();
-            if (onRestart) onRestart();
-            else location.reload();
-          },
         },
       ],
     });

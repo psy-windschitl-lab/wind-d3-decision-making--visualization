@@ -130,7 +130,10 @@ const ManualLayout: Page = (root, ctx) => {
       state.scores
     );
     return {
-      options: state.options.map(o => ({ id: o.id, label: o.label })),
+      layoutName: root.parentElement?.dataset.layout ?? null,
+      options: state.options.map(o => ({ id: o.id, label: o.label, weight: o.weight })),
+      factors: state.factors.map(f => ({ id: f.id, label: f.label, weight: f.weight })),
+      scores: JSON.parse(JSON.stringify(state.scores)) as Scores,
       waddScores,
     };
   };

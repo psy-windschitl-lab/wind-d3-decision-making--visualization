@@ -565,7 +565,18 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const data = toChartData(state, false);
         const waddScores = computeWaddScores(data.options, data.factors, data.scores);
         return {
-          options: data.options.map(o => ({ id: o.id, label: state.options.find(so => so.id === o.id)?.label || o.label })),
+          layoutName: root.parentElement?.dataset.layout ?? null,
+          options: data.options.map(o => ({
+            id: o.id,
+            label: state.options.find(so => so.id === o.id)?.label || o.label,
+            weight: o.weight,
+          })),
+          factors: data.factors.map(f => ({
+            id: f.id,
+            label: state.factors.find(sf => sf.id === f.id)?.label || f.label,
+            weight: f.weight,
+          })),
+          scores: data.scores,
           waddScores,
         };
       },

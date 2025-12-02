@@ -1,4 +1,3 @@
-
 import { Router, type Route } from "./router";
 import Home from "./pages/Home";
 import LayoutBuilder from "./pages/LayoutBuilder";
