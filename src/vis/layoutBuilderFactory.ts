@@ -19,8 +19,21 @@ type UIState = {
 const MAX_CHOICES = 5;
 
 const mapLikertToSigned = (ui: number) => (ui - 3) / 2;
-const mapImportanceToWeight = (ui: number) => 1 + (ui - 1) / 4;
-const weightToImportance = (w: number) => Math.round(1 + (w - 1) * 4);
+
+// A factor's weight is its importance rating divided by the sum of every
+// factor's importance rating, so all weights for a given set of factors sum to 1
+// (e.g. ratings 5, 3, 2 -> weights 0.5, 0.3, 0.2).
+const computeNormalizedWeights = (
+  factors: { id: string; uiImportance: number }[]
+): Record<string, number> => {
+  const total = factors.reduce((acc, f) => acc + Math.max(0, f.uiImportance), 0);
+  const weights: Record<string, number> = {};
+  factors.forEach(f => {
+    weights[f.id] = total > 0 ? Math.max(0, f.uiImportance) / total : 0;
+  });
+  return weights;
+};
+
 const signedToLikert = (s: number) => Math.round(3 + s * 2);
 
 export function createBuilderLayout(config: BuilderConfig): Page {
@@ -98,23 +111,37 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         onUpdate: (updates) => {
           if (updates.factors) {
             const idToFactor = new Map(state.factors.map(f => [f.id, f]));
+            // Weights we last handed to the chart, before any of these updates are applied.
+            // Used to turn a reported weight change (e.g. from dragging a row) into a
+            // proportional change to that factor's own importance rating, since weight is
+            // now relative to every factor's rating and can't be inverted on its own.
+            const priorWeights = computeNormalizedWeights(state.factors);
+            const nextImportanceFor = (newF: { id: string; weight: number }) => {
+              const existing = idToFactor.get(newF.id);
+              if (!existing) return 3; // sensible default for a brand-new factor
+              const priorWeight = priorWeights[newF.id];
+              if (!priorWeight) return existing.uiImportance;
+              const ratio = newF.weight / priorWeight;
+              return Math.max(1, Math.min(5, Math.round(existing.uiImportance * ratio)));
+            };
             updates.factors.forEach(newF => {
               const existing = idToFactor.get(newF.id);
+              const nextImportance = nextImportanceFor(newF);
               if (existing) {
                 existing.label = newF.label;
-                existing.uiImportance = weightToImportance(newF.weight);
+                existing.uiImportance = nextImportance;
               } else {
                 state.factors.push({
                   id: newF.id,
                   label: newF.label,
-                  uiImportance: weightToImportance(newF.weight),
+                  uiImportance: nextImportance,
                 });
               }
             });
             state.factors = updates.factors.map(newF => idToFactor.get(newF.id) || {
               id: newF.id,
               label: newF.label,
-              uiImportance: weightToImportance(newF.weight),
+              uiImportance: nextImportanceFor(newF),
             });
             pruneTouched();
           }
@@ -334,8 +361,10 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         slider.value = String(fac.uiImportance);
         const label = document.createElement("span");
         label.style.marginLeft = "8px";
-        const updateLab = () => label.textContent =
-          `Importance: ${slider.value} → weight ${mapImportanceToWeight(Number(slider.value)).toFixed(2)}`;
+        const updateLab = () => {
+          const weights = computeNormalizedWeights(state.factors);
+          label.textContent = `Importance: ${slider.value} → weight ${(weights[fac.id] ?? 0).toFixed(2)}`;
+        };
         slider.oninput = () => { fac.uiImportance = Number(slider.value); updateLab(); renderPreview(); };
         updateLab();
         sliderWrap.append(slider, label);
@@ -466,10 +495,11 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         weight: 1,
       }));
 
+      const factorWeights = computeNormalizedWeights(s.factors);
       const factors = s.factors.map(f => ({
         id: f.id,
         label: f.label,
-        weight: mapImportanceToWeight(f.uiImportance),
+        weight: factorWeights[f.id] ?? 0,
       }));
 
       const scores: Record<string, Record<string, number>> = {};
@@ -517,7 +547,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const importanceCell = document.createElement("td");
         importanceCell.classList.add("table-importance");
         importanceCell.style.textAlign = "right";
-        importanceCell.textContent = String(weightToImportance(factor.weight));
+        const sourceFactor = state.factors.find(sf => sf.id === factor.id);
+        importanceCell.textContent = sourceFactor ? String(sourceFactor.uiImportance) : "—";
         row.appendChild(importanceCell);
 
         data.options.forEach((option) => {
