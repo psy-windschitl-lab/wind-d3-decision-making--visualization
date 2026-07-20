@@ -476,7 +476,7 @@ export class DecisionLayoutChart {
           const delta = event.y - this.dragInfo.startY;
           let newHeight = Math.max(10, this.dragInfo.startHeight + delta);
           let newWeight = this.dragInfo.startWeight * (newHeight / this.dragInfo.startHeight);
-          newWeight = Math.max(1, Math.min(2, newWeight));
+          newWeight = Math.max(0.01, newWeight);
           this.factors[this.dragInfo.idx].weight = newWeight;
           if (!this.updatePending) {
             this.updatePending = true;
