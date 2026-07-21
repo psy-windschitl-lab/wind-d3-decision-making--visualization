@@ -182,15 +182,27 @@ export class DecisionLayoutChart {
     const innerWidthAllowance = Math.max(80, initialWidth - margin.left - margin.right - CONTROL_WIDTH - CONTROL_GAP);
     const innerHeightAllowance = Math.max(80, initialHeight - margin.top - margin.bottom - CONTROL_HEIGHT - CONTROL_GAP - WADD_HEIGHT);
 
-    const MIN_ROW_PX = 28;
+    const MIN_ROW_PX = 12;
     const rowWeights = this.factors.map(f => Math.max(0, f.weight));
     const totalRowW = Math.max(1e-6, sum(rowWeights));
-    const baseRowH = MIN_ROW_PX * this.factors.length;
-    const freeRowH = Math.max(0, innerHeightAllowance - baseRowH);
-    const rowCompress = baseRowH > innerHeightAllowance ? innerHeightAllowance / baseRowH : 1;
     let rowHeights: number[] = this.factors.map((_, i) =>
-      (MIN_ROW_PX + (freeRowH * (rowWeights[i] / totalRowW))) * rowCompress
+      innerHeightAllowance * (rowWeights[i] / totalRowW)
     );
+    // Safety floor so a very-low-weight factor's row never becomes unreadable/undraggable.
+    // Rows below the floor are bumped up to it, and the difference is taken back out of the
+    // other rows proportionally, so their relative heights stay as close to the true weight
+    // ratio as the available space allows.
+    for (let guard = 0; guard < this.factors.length; guard++) {
+      const shortfall = rowHeights.reduce((acc, h) => acc + Math.max(0, MIN_ROW_PX - h), 0);
+      if (shortfall <= 0) break;
+      const donors = rowHeights.map(h => Math.max(0, h - MIN_ROW_PX));
+      const donorPool = sum(donors);
+      rowHeights = rowHeights.map((h, i) => {
+        if (h < MIN_ROW_PX) return MIN_ROW_PX;
+        if (donorPool <= 0) return h;
+        return h - shortfall * (donors[i] / donorPool);
+      });
+    }
     const totalRowHeight = rowHeights.reduce((acc, h) => acc + h, 0);
     if (totalRowHeight > innerHeightAllowance) {
       const scale = innerHeightAllowance / totalRowHeight;
