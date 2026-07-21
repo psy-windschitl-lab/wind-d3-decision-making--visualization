@@ -341,7 +341,8 @@ export class DecisionLayoutChart {
     colAll.select<SVGRectElement>("rect.header-bg").style("cursor", "move").call(
       drag<Option>()
         .on("start", (event, d) => {
-          const g = select(event.sourceEvent.target.parentNode as SVGGElement);
+          const node = event.sourceEvent.target.parentNode as SVGGElement;
+          const g = select(node);
           g.raise();
           const idx = this.options.findIndex(o => o.id === d.id);
           this.dragInfo = {
@@ -351,6 +352,7 @@ export class DecisionLayoutChart {
             origLeft: colLefts[idx],
             newIdx: idx,
             rawNewIdx: idx,
+            groupNode: node,
           } as any;
           // Bring the dragged column's own data cells to the front too, so they move
           // together with the header instead of staying frozen until the drop.
@@ -359,7 +361,10 @@ export class DecisionLayoutChart {
             .raise();
         })
         .on("drag", (event) => {
-          const g = select(event.sourceEvent.target.parentNode as SVGGElement);
+          // Reuse the exact element captured at drag start — see the matching comment
+          // in the row-reorder handler for why re-detecting it from the pointer each
+          // frame is unsafe once siblings start sliding underneath the cursor.
+          const g = select(this.dragInfo.groupNode as SVGGElement);
           const translateX = this.dragInfo.origLeft + event.x - this.dragInfo.startX;
           g.attr("transform", `translate(${translateX}, ${margin.top - HEADER_H})`);
           // Move the dragged column's data cells with it, live, instead of leaving them
@@ -543,7 +548,8 @@ export class DecisionLayoutChart {
     rowAll.select<SVGRectElement>("rect.row-bg").call(
       drag<Factor>()
         .on("start", (event, d) => {
-          const g = select(event.sourceEvent.target.parentNode as SVGGElement);
+          const node = event.sourceEvent.target.parentNode as SVGGElement;
+          const g = select(node);
           g.raise();
           const idx = this.factors.findIndex(f => f.id === d.id);
           this.dragInfo = {
@@ -553,6 +559,7 @@ export class DecisionLayoutChart {
             origTop: rowTops[idx],
             newIdx: idx,
             rawNewIdx: idx,
+            groupNode: node,
           } as any;
           // Bring the dragged row's own data cells to the front too, so they move
           // together with the header instead of staying frozen until the drop.
@@ -561,7 +568,12 @@ export class DecisionLayoutChart {
             .raise();
         })
         .on("drag", (event) => {
-          const g = select(event.sourceEvent.target.parentNode as SVGGElement);
+          // Reuse the exact element captured at drag start, rather than asking "what's
+          // under the pointer right now" — once sibling rows start sliding underneath the
+          // cursor (from the preview-swap animation below), that would sometimes resolve to
+          // a *different* row, silently moving the wrong box while the one you're actually
+          // holding freezes in place (looking like it vanished).
+          const g = select(this.dragInfo.groupNode as SVGGElement);
           const translateY = this.dragInfo.origTop + event.y - this.dragInfo.startY;
           g.attr("transform", `translate(0, ${translateY})`);
           // Move the dragged row's data cells with it, live, instead of leaving them
@@ -572,10 +584,9 @@ export class DecisionLayoutChart {
             .attr("transform", (cd: any) => `translate(${colLefts[cd.cidx]}, ${translateY})`);
           const draggedCenter = translateY + rowHeights[this.dragInfo.idx] / 2;
           // Directional hysteresis: crossing a row's center in one direction requires
-          // clearing a buffer zone, and crossing back the other way requires clearing it
-          // again on the way back. Without this, hovering right at a boundary (natural
-          // cursor jitter) flips the preview back and forth and re-triggers the swap
-          // animation repeatedly, which looks like flashing/glitching.
+          // clearing a buffer zone, and crossing back requires clearing it again the other
+          // way. Without this, hovering right at a boundary (natural cursor jitter) flips
+          // the preview back and forth and re-triggers the swap animation repeatedly.
           const HYSTERESIS = 0.2;
           let rawNewIdx = this.dragInfo.rawNewIdx;
           for (let i = 0; i < rowTops.length; i++) {
