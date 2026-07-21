@@ -391,9 +391,10 @@ export class DecisionLayoutChart {
             this.dragInfo.newIdx = newIdx;
             this.gCols
               .selectAll<SVGGElement, Option>("g.col")
-              .filter((_, i) => i !== this.dragInfo.idx)
+              .filter((cd: Option) => cd.id !== this.options[this.dragInfo.idx].id)
               .transition().duration(150)
-              .attr("transform", (d, i) => {
+              .attr("transform", (cd: Option) => {
+                const i = this.options.findIndex(o => o.id === cd.id);
                 let x = colLefts[i];
                 if (i > this.dragInfo.idx && i <= newIdx) x -= colWidths[this.dragInfo.idx];
                 else if (i < this.dragInfo.idx && i >= newIdx) x += colWidths[this.dragInfo.idx];
@@ -603,9 +604,10 @@ export class DecisionLayoutChart {
             this.dragInfo.newIdx = newIdx;
             this.gRows
               .selectAll<SVGGElement, Factor>("g.row")
-              .filter((_, i) => i !== this.dragInfo.idx)
+              .filter((rd: Factor) => rd.id !== this.factors[this.dragInfo.idx].id)
               .transition().duration(150)
-              .attr("transform", (d, i) => {
+              .attr("transform", (rd: Factor) => {
+                const i = this.factors.findIndex(f => f.id === rd.id);
                 let y = rowTops[i];
                 if (i > this.dragInfo.idx && i <= newIdx) y -= rowHeights[this.dragInfo.idx];
                 else if (i < this.dragInfo.idx && i >= newIdx) y += rowHeights[this.dragInfo.idx];
