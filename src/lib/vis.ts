@@ -350,6 +350,7 @@ export class DecisionLayoutChart {
             idx,
             origLeft: colLefts[idx],
             newIdx: idx,
+            rawNewIdx: idx,
           } as any;
           // Bring the dragged column's own data cells to the front too, so they move
           // together with the header instead of staying frozen until the drop.
@@ -368,12 +369,18 @@ export class DecisionLayoutChart {
             .filter((cd: any) => cd.oid === draggedOid)
             .attr("transform", (cd: any) => `translate(${translateX}, ${rowTops[cd.ridx]})`);
           const draggedCenter = translateX + colWidths[this.dragInfo.idx] / 2;
-          let newIdx = 0;
+          // Directional hysteresis: see the matching comment in the row-reorder handler.
+          const HYSTERESIS = 0.2;
+          let rawNewIdx = this.dragInfo.rawNewIdx;
           for (let i = 0; i < colLefts.length; i++) {
             if (i === this.dragInfo.idx) continue;
             const center = colLefts[i] + colWidths[i] / 2;
-            if (draggedCenter > center) newIdx = i + 1;
+            const buffer = colWidths[i] * HYSTERESIS;
+            if (i >= rawNewIdx && draggedCenter > center + buffer) rawNewIdx = i + 1;
+            if (i < rawNewIdx && draggedCenter < center - buffer) rawNewIdx = i;
           }
+          this.dragInfo.rawNewIdx = rawNewIdx;
+          let newIdx = rawNewIdx;
           if (newIdx > this.dragInfo.idx) newIdx--;
           if (newIdx !== this.dragInfo.newIdx) {
             this.dragInfo.newIdx = newIdx;
@@ -545,6 +552,7 @@ export class DecisionLayoutChart {
             idx,
             origTop: rowTops[idx],
             newIdx: idx,
+            rawNewIdx: idx,
           } as any;
           // Bring the dragged row's own data cells to the front too, so they move
           // together with the header instead of staying frozen until the drop.
@@ -563,12 +571,22 @@ export class DecisionLayoutChart {
             .filter((cd: any) => cd.fid === draggedFid)
             .attr("transform", (cd: any) => `translate(${colLefts[cd.cidx]}, ${translateY})`);
           const draggedCenter = translateY + rowHeights[this.dragInfo.idx] / 2;
-          let newIdx = 0;
+          // Directional hysteresis: crossing a row's center in one direction requires
+          // clearing a buffer zone, and crossing back the other way requires clearing it
+          // again on the way back. Without this, hovering right at a boundary (natural
+          // cursor jitter) flips the preview back and forth and re-triggers the swap
+          // animation repeatedly, which looks like flashing/glitching.
+          const HYSTERESIS = 0.2;
+          let rawNewIdx = this.dragInfo.rawNewIdx;
           for (let i = 0; i < rowTops.length; i++) {
             if (i === this.dragInfo.idx) continue;
             const center = rowTops[i] + rowHeights[i] / 2;
-            if (draggedCenter > center) newIdx = i + 1;
+            const buffer = rowHeights[i] * HYSTERESIS;
+            if (i >= rawNewIdx && draggedCenter > center + buffer) rawNewIdx = i + 1;
+            if (i < rawNewIdx && draggedCenter < center - buffer) rawNewIdx = i;
           }
+          this.dragInfo.rawNewIdx = rawNewIdx;
+          let newIdx = rawNewIdx;
           if (newIdx > this.dragInfo.idx) newIdx--;
           if (newIdx !== this.dragInfo.newIdx) {
             this.dragInfo.newIdx = newIdx;
