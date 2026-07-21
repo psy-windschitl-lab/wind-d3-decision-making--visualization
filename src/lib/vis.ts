@@ -182,27 +182,34 @@ export class DecisionLayoutChart {
     const innerWidthAllowance = Math.max(80, initialWidth - margin.left - margin.right - CONTROL_WIDTH - CONTROL_GAP);
     const innerHeightAllowance = Math.max(80, initialHeight - margin.top - margin.bottom - CONTROL_HEIGHT - CONTROL_GAP - WADD_HEIGHT);
 
-    const MIN_ROW_PX = 12;
+    const MIN_ROW_PX = 12; // minimum VISIBLE row height (excludes the gap)
     const rowWeights = this.factors.map(f => Math.max(0, f.weight));
     const totalRowW = Math.max(1e-6, sum(rowWeights));
-    let rowHeights: number[] = this.factors.map((_, i) =>
-      innerHeightAllowance * (rowWeights[i] / totalRowW)
+    // The gap between rows is fixed overhead, not part of what should be split by weight.
+    // Reserve it up front so the visible (non-gap) portion of each row stays exactly
+    // proportional to weight, instead of the gap being subtracted evenly afterward and
+    // quietly skewing the ratio between rows.
+    const totalRowGap = ROW_GAP * this.factors.length;
+    const visibleHeightAllowance = Math.max(0, innerHeightAllowance - totalRowGap);
+    let visibleRowHeights: number[] = this.factors.map((_, i) =>
+      visibleHeightAllowance * (rowWeights[i] / totalRowW)
     );
     // Safety floor so a very-low-weight factor's row never becomes unreadable/undraggable.
     // Rows below the floor are bumped up to it, and the difference is taken back out of the
     // other rows proportionally, so their relative heights stay as close to the true weight
     // ratio as the available space allows.
     for (let guard = 0; guard < this.factors.length; guard++) {
-      const shortfall = rowHeights.reduce((acc, h) => acc + Math.max(0, MIN_ROW_PX - h), 0);
+      const shortfall = visibleRowHeights.reduce((acc, h) => acc + Math.max(0, MIN_ROW_PX - h), 0);
       if (shortfall <= 0) break;
-      const donors = rowHeights.map(h => Math.max(0, h - MIN_ROW_PX));
+      const donors = visibleRowHeights.map(h => Math.max(0, h - MIN_ROW_PX));
       const donorPool = sum(donors);
-      rowHeights = rowHeights.map((h, i) => {
+      visibleRowHeights = visibleRowHeights.map((h, i) => {
         if (h < MIN_ROW_PX) return MIN_ROW_PX;
         if (donorPool <= 0) return h;
         return h - shortfall * (donors[i] / donorPool);
       });
     }
+    let rowHeights: number[] = visibleRowHeights.map(h => h + ROW_GAP);
     const totalRowHeight = rowHeights.reduce((acc, h) => acc + h, 0);
     if (totalRowHeight > innerHeightAllowance) {
       const scale = innerHeightAllowance / totalRowHeight;
