@@ -351,11 +351,22 @@ export class DecisionLayoutChart {
             origLeft: colLefts[idx],
             newIdx: idx,
           } as any;
+          // Bring the dragged column's own data cells to the front too, so they move
+          // together with the header instead of staying frozen until the drop.
+          this.gGrid.selectAll<SVGGElement, any>("g.cell")
+            .filter((cd: any) => cd.oid === d.id)
+            .raise();
         })
         .on("drag", (event) => {
           const g = select(event.sourceEvent.target.parentNode as SVGGElement);
           const translateX = this.dragInfo.origLeft + event.x - this.dragInfo.startX;
           g.attr("transform", `translate(${translateX}, ${margin.top - HEADER_H})`);
+          // Move the dragged column's data cells with it, live, instead of leaving them
+          // in their old spot until the drag ends.
+          const draggedOid = this.options[this.dragInfo.idx].id;
+          this.gGrid.selectAll<SVGGElement, any>("g.cell")
+            .filter((cd: any) => cd.oid === draggedOid)
+            .attr("transform", (cd: any) => `translate(${translateX}, ${rowTops[cd.ridx]})`);
           const draggedCenter = translateX + colWidths[this.dragInfo.idx] / 2;
           let newIdx = 0;
           for (let i = 0; i < colLefts.length; i++) {
@@ -375,6 +386,17 @@ export class DecisionLayoutChart {
                 if (i > this.dragInfo.idx && i <= newIdx) x -= colWidths[this.dragInfo.idx];
                 else if (i < this.dragInfo.idx && i >= newIdx) x += colWidths[this.dragInfo.idx];
                 return `translate(${x}, ${margin.top - HEADER_H})`;
+              });
+            // Mirror the same live preview shift onto every other column's data cells, so
+            // the whole column (header + bars) previews its landing spot together.
+            this.gGrid.selectAll<SVGGElement, any>("g.cell")
+              .filter((cd: any) => cd.cidx !== this.dragInfo.idx)
+              .transition().duration(150)
+              .attr("transform", (cd: any) => {
+                let x = colLefts[cd.cidx];
+                if (cd.cidx > this.dragInfo.idx && cd.cidx <= newIdx) x -= colWidths[this.dragInfo.idx];
+                else if (cd.cidx < this.dragInfo.idx && cd.cidx >= newIdx) x += colWidths[this.dragInfo.idx];
+                return `translate(${x}, ${rowTops[cd.ridx]})`;
               });
           }
         })
@@ -524,11 +546,22 @@ export class DecisionLayoutChart {
             origTop: rowTops[idx],
             newIdx: idx,
           } as any;
+          // Bring the dragged row's own data cells to the front too, so they move
+          // together with the header instead of staying frozen until the drop.
+          this.gGrid.selectAll<SVGGElement, any>("g.cell")
+            .filter((cd: any) => cd.fid === d.id)
+            .raise();
         })
         .on("drag", (event) => {
           const g = select(event.sourceEvent.target.parentNode as SVGGElement);
           const translateY = this.dragInfo.origTop + event.y - this.dragInfo.startY;
           g.attr("transform", `translate(0, ${translateY})`);
+          // Move the dragged row's data cells with it, live, instead of leaving them
+          // in their old spot until the drag ends.
+          const draggedFid = this.factors[this.dragInfo.idx].id;
+          this.gGrid.selectAll<SVGGElement, any>("g.cell")
+            .filter((cd: any) => cd.fid === draggedFid)
+            .attr("transform", (cd: any) => `translate(${colLefts[cd.cidx]}, ${translateY})`);
           const draggedCenter = translateY + rowHeights[this.dragInfo.idx] / 2;
           let newIdx = 0;
           for (let i = 0; i < rowTops.length; i++) {
@@ -548,6 +581,17 @@ export class DecisionLayoutChart {
                 if (i > this.dragInfo.idx && i <= newIdx) y -= rowHeights[this.dragInfo.idx];
                 else if (i < this.dragInfo.idx && i >= newIdx) y += rowHeights[this.dragInfo.idx];
                 return `translate(0, ${y})`;
+              });
+            // Mirror the same live preview shift onto every other row's data cells, so
+            // the whole row (header + bars) previews its landing spot together.
+            this.gGrid.selectAll<SVGGElement, any>("g.cell")
+              .filter((cd: any) => cd.ridx !== this.dragInfo.idx)
+              .transition().duration(150)
+              .attr("transform", (cd: any) => {
+                let y = rowTops[cd.ridx];
+                if (cd.ridx > this.dragInfo.idx && cd.ridx <= newIdx) y -= rowHeights[this.dragInfo.idx];
+                else if (cd.ridx < this.dragInfo.idx && cd.ridx >= newIdx) y += rowHeights[this.dragInfo.idx];
+                return `translate(${colLefts[cd.cidx]}, ${y})`;
               });
           }
         })
