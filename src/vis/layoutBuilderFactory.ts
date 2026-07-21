@@ -65,7 +65,6 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           <li>Add factors and set importance (1–5)</li>
           <li>Rate each factor of each choice option (1–5)</li>
         </ol>
-        ${showWADDControl}
         <div id="step"></div>
         <div style="display:flex; gap:.5rem; margin-top:12px">
           <button id="backBtn" style="display:none">Back</button>
@@ -74,6 +73,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       </section>
       <section id="previewCard" class="card" style="margin-top:12px">
         <h2 class="h1" style="font-size:1.2rem">Preview</h2>
+        ${showWADDControl}
         <div id="viz" style="margin-top:8px; background:#0f1730; border-radius:12px; padding:8px;"></div>
       </section>
     `;
