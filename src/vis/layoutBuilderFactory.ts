@@ -334,8 +334,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       nextBtn.textContent = "Next";
     }
 
+    const factorLabelUpdaters: Array<() => void> = [];
+    const refreshFactorLabels = () => {
+      factorLabelUpdaters.forEach(update => update());
+    };
+
     function drawFactors(container: HTMLElement) {
       container.innerHTML = "";
+      factorLabelUpdaters.length = 0;
       state.factors.forEach((fac, idx) => {
         const row = document.createElement("div");
         row.style.display = "grid";
@@ -365,7 +371,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           const weights = computeNormalizedWeights(state.factors);
           label.textContent = `Importance: ${slider.value} → weight ${(weights[fac.id] ?? 0).toFixed(2)}`;
         };
-        slider.oninput = () => { fac.uiImportance = Number(slider.value); updateLab(); renderPreview(); };
+        factorLabelUpdaters.push(updateLab);
+        slider.oninput = () => {
+          fac.uiImportance = Number(slider.value);
+          slider.value = String(fac.uiImportance);
+          refreshFactorLabels();
+          renderPreview();
+        };
         updateLab();
         sliderWrap.append(slider, label);
 
