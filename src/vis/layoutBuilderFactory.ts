@@ -17,6 +17,8 @@ type UIState = {
 };
 
 const MAX_CHOICES = 5;
+// A, B, C, ... for default choice-option labels (n is 1-based).
+const optionLetter = (n: number) => String.fromCharCode(64 + n);
 
 const mapLikertToSigned = (ui: number) => (ui - 3) / 2;
 
@@ -59,9 +61,9 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       <section class="card">
         <h1 class="h1">Build your decision layout</h1>
         <ol style="margin:0 0 12px 1.1rem; color:var(--muted)">
-          <li>Add up to 5 choices</li>
+          <li>Add up to 5 choice options</li>
           <li>Add factors and set importance (1–5)</li>
-          <li>Rate each choice per factor (1–5)</li>
+          <li>Rate each factor of each choice option (1–5)</li>
         </ol>
         ${showWADDControl}
         <div id="step"></div>
@@ -248,10 +250,10 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep1() {
       stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 1 — Add choices (max ${MAX_CHOICES})</h2>
+        <h2 class="h1" style="font-size:1.2rem">Step 1 — Add choice options (max ${MAX_CHOICES})</h2>
         <div id="choices"></div>
         <div style="margin-top:8px">
-          <button id="addChoiceBtn">Add choice</button>
+          <button id="addChoiceBtn">Add More Choice Options</button>
         </div>
         <p style="color:var(--muted); margin-top:8px">You can rename choices anytime.</p>
       `;
@@ -263,7 +265,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         if (state.options.length >= MAX_CHOICES) return;
         const prev = deepClone(state);
         const idx = state.options.length + 1;
-        state.options.push({ id: newOptId(), label: `Option ${idx}` });
+        state.options.push({ id: newOptId(), label: `Option ${optionLetter(idx)}` });
         reconcileScores(prev, state);
         drawChoices(container);
         renderPreview();
@@ -288,9 +290,9 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const input = document.createElement("input");
         input.type = "text";
         input.value = opt.label;
-        input.placeholder = `Option ${idx + 1}`;
+        input.placeholder = `Option ${optionLetter(idx + 1)}`;
         input.oninput = () => {
-          opt.label = input.value.trim() || `Option ${idx + 1}`;
+          opt.label = input.value.trim() || `Option ${optionLetter(idx + 1)}`;
           renderPreview();
         };
 
