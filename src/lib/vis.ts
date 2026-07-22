@@ -330,7 +330,7 @@ export class DecisionLayoutChart {
         });
         this.scores = newScores;
         this.render();
-        if (this.onUpdate) this.onUpdate({ options: [...this.options], scores: { ...this.scores } });
+        if (this.onUpdate) this.onUpdate({ options: [...this.options] });
       });
 
     colAll.select<SVGRectElement>("rect.header-bg").style("cursor", "move").call(
@@ -505,7 +505,7 @@ export class DecisionLayoutChart {
         });
         this.scores = newScores;
         this.render();
-        if (this.onUpdate) this.onUpdate({ factors: [...this.factors], scores: { ...this.scores } });
+        if (this.onUpdate) this.onUpdate({ factors: [...this.factors] });
       });
 
     rowAll.select<SVGRectElement>("rect.resize-handle").call(
@@ -671,8 +671,8 @@ export class DecisionLayoutChart {
       const wNeg = w - wPos;
       const key = chartInstance.cellKey(d.fid, d.oid);
       const isModified = chartInstance.modifiedCells.has(key);
-      const posFill = isModified ? colors.pos : neutralCellColors.pos;
-      const negFill = isModified ? colors.neg : neutralCellColors.neg;
+      const posFill = isModified ? colors.pos : "transparent";
+      const negFill = isModified ? colors.neg : "transparent";
 
       g.select<SVGRectElement>("rect.cell-pos")
         .transition(t)
@@ -844,7 +844,7 @@ export class DecisionLayoutChart {
         this.scores[f.id] = { ...this.scores[f.id], [newId]: 0 };
       });
       this.render();
-      if (this.onUpdate) this.onUpdate({ options: [...this.options], scores: { ...this.scores } });
+      if (this.onUpdate) this.onUpdate({ options: [...this.options] });
     });
 
     controls.exit().remove();
@@ -887,7 +887,7 @@ export class DecisionLayoutChart {
         this.scores[newId][o.id] = 0;
       });
       this.render();
-      if (this.onUpdate) this.onUpdate({ factors: [...this.factors], scores: { ...this.scores } });
+      if (this.onUpdate) this.onUpdate({ factors: [...this.factors] });
     });
 
     factorControls.exit().remove();
