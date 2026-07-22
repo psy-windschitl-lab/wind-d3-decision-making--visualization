@@ -19,6 +19,10 @@ rect[fill="transparent"]:hover { fill: var(--accent); opacity: 0.2; }
 .table tbody tr:nth-child(odd) { background: rgba(20, 32, 61, 0.60); }
 .table tbody tr:nth-child(even) { background: rgba(20, 32, 61, 0.00); }
 .table .table-importance { text-align: left; font-variant-numeric: tabular-nums; font-weight: 600; }
+/* Hides the thumb on a range slider until the person has actually interacted with it,
+   so it doesn't look like a value has already been chosen for them. */
+input[type="range"].slider-unset::-webkit-slider-thumb { opacity: 0; }
+input[type="range"].slider-unset::-moz-range-thumb { opacity: 0; }
 .table .table-wadd th,
 .table .table-wadd td {
   border-top: 2px solid var(--accent);
