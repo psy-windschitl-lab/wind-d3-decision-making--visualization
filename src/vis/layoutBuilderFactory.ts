@@ -221,12 +221,17 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     };
 
     const touchedCells = new Set<string>();
+    const touchedImportance = new Set<string>();
     const cellKey = (fid: string, oid: string) => `${fid}__${oid}`;
     const pruneTouched = () => {
       const valid = new Set<string>();
       state.factors.forEach(f => state.options.forEach(o => valid.add(cellKey(f.id, o.id))));
       for (const key of Array.from(touchedCells)) {
         if (!valid.has(key)) touchedCells.delete(key);
+      }
+      const validFactors = new Set(state.factors.map(f => f.id));
+      for (const fid of Array.from(touchedImportance)) {
+        if (!validFactors.has(fid)) touchedImportance.delete(fid);
       }
     };
 
@@ -367,6 +372,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const slider = document.createElement("input");
         slider.type = "range"; slider.min = "1"; slider.max = "5"; slider.step = "1";
         slider.value = String(fac.uiImportance);
+        if (!touchedImportance.has(fac.id)) slider.classList.add("slider-unset");
         const label = document.createElement("span");
         label.style.marginLeft = "8px";
         const updateLab = () => {
@@ -375,6 +381,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         };
         factorLabelUpdaters.push(updateLab);
         slider.oninput = () => {
+          slider.classList.remove("slider-unset");
+          touchedImportance.add(fac.id);
           fac.uiImportance = Number(slider.value);
           slider.value = String(fac.uiImportance);
           refreshFactorLabels();
@@ -430,11 +438,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           const inp = document.createElement("input");
           inp.type = "range"; inp.min = "1"; inp.max = "5"; inp.step = "1";
           inp.value = String(state.scoresUI[f.id]?.[o.id] ?? 3);
+          if (!touchedCells.has(cellKey(f.id, o.id))) inp.classList.add("slider-unset");
           const val = document.createElement("span");
           val.style.marginLeft = "6px";
           const setVal = () => val.textContent = inp.value;
           setVal();
           inp.oninput = () => {
+            inp.classList.remove("slider-unset");
             state.scoresUI[f.id] ||= {};
             state.scoresUI[f.id][o.id] = Number(inp.value);
             touchedCells.add(cellKey(f.id, o.id));
@@ -475,9 +485,21 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         go(2);
       } else if (currentStep === 2) {
         if (state.factors.length < 1) { alert("Please add at least 1 factor."); return; }
+        const untouchedFactor = state.factors.find(f => !touchedImportance.has(f.id));
+        if (untouchedFactor) {
+          alert(`Please set an importance rating for "${untouchedFactor.label}" before continuing.`);
+          return;
+        }
         const prev = deepClone(state); reconcileScores(prev, state);
         go(3);
       } else {
+        const untouchedCell = state.factors
+          .flatMap(f => state.options.map(o => ({ f, o })))
+          .find(({ f, o }) => !touchedCells.has(cellKey(f.id, o.id)));
+        if (untouchedCell) {
+          alert(`Please rate "${untouchedCell.o.label}" on "${untouchedCell.f.label}" before finishing.`);
+          return;
+        }
         finished = true;
         if (config.previewMode === "after-finish") {
           previewCard.style.display = "";
