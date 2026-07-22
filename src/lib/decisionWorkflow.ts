@@ -125,7 +125,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
 
   function formatOptionLabel(label: string, waddScore?: number) {
     if (showWaddOnButtons && typeof waddScore === "number" && Number.isFinite(waddScore)) {
-      return `${label} — WADD ${waddScore.toFixed(1)}/10`;
+      return `${label} — WADD ${waddScore.toFixed(1)}/100`;
     }
     return label;
   }
@@ -133,7 +133,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
   const trigger = document.createElement("button");
   trigger.type = "button";
   trigger.className = "decision-btn";
-  trigger.textContent = "Make Decision";
+  trigger.textContent = "Ready to Make My Decision";
 
   trigger.addEventListener("click", () => {
     if (decisionLocked) return;
