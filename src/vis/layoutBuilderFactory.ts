@@ -432,8 +432,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           inp.value = String(state.scoresUI[f.id]?.[o.id] ?? 3);
           const val = document.createElement("span");
           val.style.marginLeft = "6px";
-          const setVal = () => val.textContent =
-            `${inp.value} → ${mapLikertToSigned(Number(inp.value)).toFixed(2)}`;
+          const setVal = () => val.textContent = inp.value;
           setVal();
           inp.oninput = () => {
             state.scoresUI[f.id] ||= {};
@@ -560,7 +559,6 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
         const importanceCell = document.createElement("td");
         importanceCell.classList.add("table-importance");
-        importanceCell.style.textAlign = "right";
         const sourceFactor = state.factors.find(sf => sf.id === factor.id);
         importanceCell.textContent = sourceFactor ? String(sourceFactor.uiImportance) : "—";
         row.appendChild(importanceCell);
@@ -568,9 +566,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         data.options.forEach((option) => {
           const td = document.createElement("td");
           td.style.textAlign = "center";
-          const score = data.scores[factor.id]?.[option.id] ?? 0;
-          const normalized = (Math.max(-1, Math.min(1, score)) + 1) / 2;
-          td.textContent = (normalized * 10).toFixed(1);
+          const likert = state.scoresUI[factor.id]?.[option.id];
+          td.textContent = typeof likert === "number" ? String(likert) : "—";
           row.appendChild(td);
         });
 
