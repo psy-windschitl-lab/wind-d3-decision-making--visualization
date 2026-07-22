@@ -1,6 +1,10 @@
-type DecisionOption = { id: string; label: string; weight?: number };
+type DecisionOption = { id: string; label: string; weight?: number; identifier?: string };
 type DecisionFactor = { id: string; label: string; weight: number };
 type DecisionScores = Record<string, Record<string, number>>;
+
+function displayLabel(opt: { label: string; identifier?: string }): string {
+  return opt.identifier ? `Option ${opt.identifier}: ${opt.label}` : opt.label;
+}
 
 type DecisionData = {
   options: DecisionOption[];
@@ -22,6 +26,7 @@ const STORAGE_KEY = "decision-layout-selection";
 type StoredDecisionPayload = {
   optionId: string;
   option: string;
+  optionIdentifier?: string;
   waddScore: number;
   relativeOptimality: { rank: number; total: number };
   layoutName?: string | null;
@@ -231,7 +236,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
 
   function refreshOptionButtons(container: HTMLElement) {
     const latest = getDecisionData();
-    const labelLookup = new Map(latest.options.map(opt => [opt.id, opt.label]));
+    const labelLookup = new Map(latest.options.map(opt => [opt.id, displayLabel(opt)]));
     container.querySelectorAll<HTMLButtonElement>(".decision-option-button").forEach(btn => {
       const optionId = btn.dataset.optionId;
       if (!optionId) return;
@@ -254,7 +259,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
       btn.className = "decision-option-button";
       btn.dataset.optionId = opt.id;
       const wadd = decisionData.waddScores[opt.id];
-      btn.textContent = formatOptionLabel(opt.label, wadd);
+      btn.textContent = formatOptionLabel(displayLabel(opt), wadd);
       btn.addEventListener("click", () => {
         const optionId = btn.dataset.optionId || opt.id;
         if (activeOptionsClose) {
@@ -308,6 +313,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
     storeDecision({
       optionId: chosen.id,
       option: chosen.label,
+      optionIdentifier: chosen.identifier,
       waddScore: Number(wadd.toFixed(2)),
       relativeOptimality: { rank: position, total },
       layoutName: decisionData.layoutName ?? null,
@@ -316,6 +322,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
           id: opt.id,
           label: opt.label,
           weight: opt.weight,
+          identifier: opt.identifier,
         })),
         factors: (decisionData.factors ?? []).map(factor => ({
           id: factor.id,
@@ -329,7 +336,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
 
     const resultModal = openModal({
       title: "Decision recorded",
-      body: `Saved "${chosen.label}" with a WADD score of ${wadd.toFixed(2)}. You can keep exploring the layout, but the decision is locked. To proceed, hit the "Next" button in the bottom right.`,
+      body: `Saved "${displayLabel(chosen)}" with a WADD score of ${wadd.toFixed(2)}. You can keep exploring the layout, but the decision is locked. To proceed, hit the "Next" button in the bottom right.`,
       actions: [
         {
           label: "Got it",
