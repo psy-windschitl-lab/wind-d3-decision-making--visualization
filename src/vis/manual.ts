@@ -47,9 +47,9 @@ const ManualLayout: Page = (root, ctx) => {
       { id: "o3", label: "Option C", weight: 1 },
     ],
     factors: [
-      { id: "f1", label: "Impact", weight: 1 },
-      { id: "f2", label: "Cost", weight: 1 },
-      { id: "f3", label: "Time", weight: 1 },
+      { id: "f1", label: "Factor 1", weight: 1 },
+      { id: "f2", label: "Factor 2", weight: 1 },
+      { id: "f3", label: "Factor 3", weight: 1 },
     ],
     scores: {
       f1: { o1: 0, o2: 0, o3: 0 },
