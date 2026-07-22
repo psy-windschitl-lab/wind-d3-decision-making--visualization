@@ -11,14 +11,45 @@ type BuilderConfig = {
 };
 
 type UIState = {
-  options: { id: string; label: string }[];
+  options: { id: string; label: string; identifier: string }[];
   factors: { id: string; label: string; uiImportance: number }[];
   scoresUI: Record<string, Record<string, number>>;
 };
 
 const MAX_CHOICES = 5;
-// A, B, C, ... for default choice-option labels (n is 1-based).
+// A, B, C, ... for choice-option identifiers (n is 1-based).
 const optionLetter = (n: number) => String.fromCharCode(64 + n);
+const FACTOR_IDENTIFIER = "Factor";
+
+// Builds a two-line header cell: the fixed identifier (small) above the person's
+// own description (regular size) - used for option/choice columns.
+function buildOptionHeaderCell(tag: "th" | "td", identifier: string, description: string): HTMLElement {
+  const cell = document.createElement(tag);
+  const idLine = document.createElement("div");
+  idLine.style.fontSize = "0.75em";
+  idLine.style.color = "var(--muted)";
+  idLine.style.fontWeight = "600";
+  idLine.textContent = `Option ${identifier}`;
+  const descLine = document.createElement("div");
+  descLine.textContent = description;
+  cell.append(idLine, descLine);
+  return cell;
+}
+
+// Builds an inline header cell: the fixed "Factor:" identifier (tiny) followed by the
+// person's own description (regular size) on the same line - used for factor rows.
+function buildFactorHeaderCell(tag: "th" | "td", description: string): HTMLElement {
+  const cell = document.createElement(tag);
+  const idSpan = document.createElement("span");
+  idSpan.style.fontSize = "0.7em";
+  idSpan.style.color = "var(--muted)";
+  idSpan.style.fontWeight = "600";
+  idSpan.textContent = `${FACTOR_IDENTIFIER}: `;
+  const descSpan = document.createElement("span");
+  descSpan.textContent = description;
+  cell.append(idSpan, descSpan);
+  return cell;
+}
 
 const mapLikertToSigned = (ui: number) => (ui - 3) / 2;
 
@@ -65,8 +96,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           <button id="nextBtn">Next</button>
         </div>
       </section>
-      <section id="previewCard" class="card" style="margin-top:12px">
-        <h2 class="h1" style="font-size:1.2rem">Preview</h2>
+      <section id="previewCard" class="card" style="margin-top:56px">
+        <h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>
         ${showWADDControl}
         <div id="viz" style="margin-top:8px; background:#0f1730; border-radius:12px; padding:8px;"></div>
       </section>
@@ -101,6 +132,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         width: measureWidth(),
         height: BASE_HEIGHT,
         showWADD,
+        showAddControls: false,
+        showIdentifierPrefix: true,
         onScoreEdit: (fid, oid) => {
           touchedCells.add(cellKey(fid, oid));
         },
@@ -152,12 +185,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
                 state.options.push({
                   id: newO.id,
                   label: newO.label,
+                  identifier: newOptIdentifier(),
                 });
               }
             });
             state.options = updates.options.map(newO => idToOption.get(newO.id) || {
               id: newO.id,
               label: newO.label,
+              identifier: newOptIdentifier(),
             });
             pruneTouched();
           }
@@ -202,18 +237,22 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       });
     }
 
-    let optSeq = 0, facSeq = 0;
+    let optSeq = 0, facSeq = 0, optIdentifierSeq = 0;
     const newOptId = () => `o${++optSeq}`;
     const newFacId = () => `f${++facSeq}`;
+    // Assigns the next never-reused letter. Once given to an option, it's never handed
+    // to another one, even after that option is removed - so a letter always identifies
+    // the same option for the lifetime of the session.
+    const newOptIdentifier = () => optionLetter(++optIdentifierSeq);
 
     const state: UIState = {
       options: [
-        { id: newOptId(), label: "Option A" },
-        { id: newOptId(), label: "Option B" },
+        { id: newOptId(), label: "", identifier: newOptIdentifier() },
+        { id: newOptId(), label: "", identifier: newOptIdentifier() },
       ],
       factors: [
-        { id: newFacId(), label: "Factor 1", uiImportance: 3 },
-        { id: newFacId(), label: "Factor 2", uiImportance: 3 },
+        { id: newFacId(), label: "", uiImportance: 3 },
+        { id: newFacId(), label: "", uiImportance: 3 },
       ],
       scoresUI: {},
     };
@@ -269,8 +308,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       stepHost.querySelector<HTMLButtonElement>("#addChoiceBtn")!.onclick = () => {
         if (state.options.length >= MAX_CHOICES) return;
         const prev = deepClone(state);
-        const idx = state.options.length + 1;
-        state.options.push({ id: newOptId(), label: `Option ${optionLetter(idx)}` });
+        state.options.push({ id: newOptId(), label: "", identifier: newOptIdentifier() });
         reconcileScores(prev, state);
         drawChoices(container);
         renderPreview();
@@ -284,20 +322,24 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       container.innerHTML = "";
       state.options.forEach((opt, idx) => {
         const row = document.createElement("div");
-        row.style.display = "grid";
-        row.style.gridTemplateColumns = "80px 1fr 90px";
+        row.style.display = "flex";
+        row.style.alignItems = "center";
         row.style.gap = "8px";
         row.style.margin = "6px 0";
 
-        const idCell = document.createElement("div");
-        idCell.textContent = String(idx + 1);
+        const prefix = document.createElement("span");
+        prefix.textContent = `Option ${opt.identifier} →`;
+        prefix.style.whiteSpace = "nowrap";
+        prefix.style.color = "var(--muted)";
+        prefix.style.fontWeight = "600";
 
         const input = document.createElement("input");
         input.type = "text";
         input.value = opt.label;
-        input.placeholder = `Option ${optionLetter(idx + 1)}`;
+        input.placeholder = "Describe this option";
+        input.style.flex = "1";
         input.oninput = () => {
-          opt.label = input.value.trim() || `Option ${optionLetter(idx + 1)}`;
+          opt.label = input.value;
           renderPreview();
         };
 
@@ -311,7 +353,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           renderPreview();
         };
 
-        row.append(idCell, input, remove);
+        row.append(prefix, input, remove);
         container.appendChild(row);
       });
     }
@@ -329,8 +371,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
       stepHost.querySelector<HTMLButtonElement>("#addFactorBtn")!.onclick = () => {
         const prev = deepClone(state);
-        const idx = state.factors.length + 1;
-        state.factors.push({ id: newFacId(), label: `Factor ${idx}`, uiImportance: 3 });
+        state.factors.push({ id: newFacId(), label: "", uiImportance: 3 });
         reconcileScores(prev, state);
         drawFactorsList(container);
         renderPreview();
@@ -344,20 +385,24 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       container.innerHTML = "";
       state.factors.forEach((fac, idx) => {
         const row = document.createElement("div");
-        row.style.display = "grid";
-        row.style.gridTemplateColumns = "80px 1fr 90px";
+        row.style.display = "flex";
+        row.style.alignItems = "center";
         row.style.gap = "8px";
         row.style.margin = "6px 0";
 
-        const idCell = document.createElement("div");
-        idCell.textContent = String(idx + 1);
+        const prefix = document.createElement("span");
+        prefix.textContent = "Factor →";
+        prefix.style.whiteSpace = "nowrap";
+        prefix.style.color = "var(--muted)";
+        prefix.style.fontWeight = "600";
 
         const input = document.createElement("input");
         input.type = "text";
         input.value = fac.label;
-        input.placeholder = `Factor ${idx + 1}`;
+        input.placeholder = "Describe this factor";
+        input.style.flex = "1";
         input.oninput = () => {
-          fac.label = input.value.trim() || `Factor ${idx + 1}`;
+          fac.label = input.value;
           renderPreview();
         };
 
@@ -371,7 +416,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           renderPreview();
         };
 
-        row.append(idCell, input, remove);
+        row.append(prefix, input, remove);
         container.appendChild(row);
       });
     }
@@ -403,16 +448,23 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         block.style.borderBottom = "1px solid #1e2a4a";
 
         const row = document.createElement("div");
-        row.style.display = "grid";
-        row.style.gridTemplateColumns = "1fr 90px";
+        row.style.display = "flex";
+        row.style.alignItems = "center";
         row.style.gap = "8px";
+
+        const prefix = document.createElement("span");
+        prefix.textContent = "Factor →";
+        prefix.style.whiteSpace = "nowrap";
+        prefix.style.color = "var(--muted)";
+        prefix.style.fontWeight = "600";
 
         const input = document.createElement("input");
         input.type = "text";
         input.value = fac.label;
-        input.placeholder = `Factor ${idx + 1}`;
+        input.placeholder = "Describe this factor";
+        input.style.flex = "1";
         input.oninput = () => {
-          fac.label = input.value.trim() || `Factor ${idx + 1}`;
+          fac.label = input.value;
           renderPreview();
         };
 
@@ -426,7 +478,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           renderPreview();
         };
 
-        row.append(input, remove);
+        row.append(prefix, input, remove);
 
         const ratingLabel = document.createElement("p");
         ratingLabel.style.color = "var(--muted)";
@@ -474,7 +526,6 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             <thead>
               <tr>
                 <th scope="col">Factor</th>
-                ${state.options.map(o => `<th scope="col">${o.label}</th>`).join("")}
               </tr>
             </thead>
             <tbody></tbody>
@@ -482,14 +533,20 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         </div>
       `;
 
+      const headRow = stepHost.querySelector<HTMLTableRowElement>("thead tr")!;
+      state.options.forEach((o) => {
+        const th = buildOptionHeaderCell("th", o.identifier, o.label) as HTMLTableCellElement;
+        th.scope = "col";
+        headRow.appendChild(th);
+      });
+
       const tbody = stepHost.querySelector<HTMLTableSectionElement>("tbody")!;
       tbody.innerHTML = "";
 
       state.factors.forEach((f) => {
         const tr = document.createElement("tr");
-        const th = document.createElement("th");
+        const th = buildFactorHeaderCell("th", f.label) as HTMLTableCellElement;
         th.scope = "row";
-        th.textContent = f.label;
         tr.appendChild(th);
 
         state.options.forEach((o) => {
@@ -602,6 +659,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         id: o.id,
         label: o.label,
         weight: 1,
+        identifier: o.identifier,
       }));
 
       const factorWeights = computeNormalizedWeights(s.factors);
@@ -633,14 +691,24 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
       const thead = document.createElement("thead");
       const headRow = document.createElement("tr");
-      const headCells = ["Factor", "Importance", ...data.options.map(o => o.label)];
-      headCells.forEach((label, idx) => {
-        const th = document.createElement("th");
-        th.scope = idx === 0 ? "col" : "col";
-        th.textContent = label;
-        if (label === "Importance") th.classList.add("table-importance");
+
+      const factorTh = document.createElement("th");
+      factorTh.scope = "col";
+      factorTh.textContent = "Factor";
+      headRow.appendChild(factorTh);
+
+      const importanceTh = document.createElement("th");
+      importanceTh.scope = "col";
+      importanceTh.textContent = "Importance";
+      importanceTh.classList.add("table-importance");
+      headRow.appendChild(importanceTh);
+
+      data.options.forEach((o) => {
+        const th = buildOptionHeaderCell("th", o.identifier, o.label) as HTMLTableCellElement;
+        th.scope = "col";
         headRow.appendChild(th);
       });
+
       thead.appendChild(headRow);
       table.appendChild(thead);
 
@@ -648,15 +716,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
       data.factors.forEach((factor) => {
         const row = document.createElement("tr");
-        const labelCell = document.createElement("th");
+        const labelCell = buildFactorHeaderCell("th", factor.label) as HTMLTableCellElement;
         labelCell.scope = "row";
-        labelCell.textContent = factor.label;
         row.appendChild(labelCell);
 
         const importanceCell = document.createElement("td");
         importanceCell.classList.add("table-importance");
         const sourceFactor = state.factors.find(sf => sf.id === factor.id);
-        importanceCell.textContent = sourceFactor ? String(sourceFactor.uiImportance) : "—";
+        importanceCell.textContent = sourceFactor ? IMPORTANCE_LABELS[sourceFactor.uiImportance - 1] : "—";
         row.appendChild(importanceCell);
 
         data.options.forEach((option) => {
@@ -709,6 +776,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             id: o.id,
             label: state.options.find(so => so.id === o.id)?.label || o.label,
             weight: o.weight,
+            identifier: o.identifier,
           })),
           factors: data.factors.map(f => ({
             id: f.id,
