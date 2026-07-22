@@ -165,8 +165,11 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             for (const fid in updates.scores) {
               state.scoresUI[fid] ??= {};
               for (const oid in updates.scores[fid]) {
-                state.scoresUI[fid][oid] = signedToLikert(updates.scores[fid][oid]);
-                touchedCells.add(cellKey(fid, oid));
+                const nextLikert = signedToLikert(updates.scores[fid][oid]);
+                if (state.scoresUI[fid][oid] !== nextLikert) {
+                  touchedCells.add(cellKey(fid, oid));
+                }
+                state.scoresUI[fid][oid] = nextLikert;
               }
             }
           }
