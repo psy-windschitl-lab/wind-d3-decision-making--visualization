@@ -18,7 +18,7 @@ rect[fill="transparent"]:hover { fill: var(--accent); opacity: 0.2; }
 .table thead th { background: rgba(29, 45, 83, 0.95); font-weight: 600; }
 .table tbody tr:nth-child(odd) { background: rgba(20, 32, 61, 0.60); }
 .table tbody tr:nth-child(even) { background: rgba(20, 32, 61, 0.00); }
-.table .table-importance { text-align: right; font-variant-numeric: tabular-nums; }
+.table .table-importance { text-align: left; font-variant-numeric: tabular-nums; font-weight: 600; }
 .table .table-wadd th,
 .table .table-wadd td {
   border-top: 2px solid var(--accent);
