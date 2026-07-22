@@ -59,6 +59,7 @@ function renderChooser(root: HTMLElement, ctx: Parameters<Page>[1]) {
         Pick a value for each variable below, or use a link that already includes both
         (e.g. <code>?layout=wizard&wadd=off</code>) to skip this page entirely.
       </p>
+      <p style="color:var(--muted); font-size:0.9em">Best used on a desktop or laptop browser.</p>
       <div style="margin-top:16px">
         <h2 class="h1" style="font-size:1.05rem">layout</h2>
         <p style="color:var(--muted); margin:2px 0 8px">Determines how the layout is built and revealed.</p>
