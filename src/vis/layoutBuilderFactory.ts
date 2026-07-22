@@ -435,23 +435,31 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         state.options.forEach((o) => {
           const td = document.createElement("td");
           td.style.minWidth = "140px";
-          const inp = document.createElement("input");
-          inp.type = "range"; inp.min = "1"; inp.max = "5"; inp.step = "1";
-          inp.value = String(state.scoresUI[f.id]?.[o.id] ?? 3);
-          if (!touchedCells.has(cellKey(f.id, o.id))) inp.classList.add("slider-unset");
-          const val = document.createElement("span");
-          val.style.marginLeft = "6px";
-          const setVal = () => val.textContent = inp.value;
-          setVal();
-          inp.oninput = () => {
-            inp.classList.remove("slider-unset");
-            state.scoresUI[f.id] ||= {};
-            state.scoresUI[f.id][o.id] = Number(inp.value);
-            touchedCells.add(cellKey(f.id, o.id));
-            setVal();
-            renderPreview();
-          };
-          td.append(inp, val);
+          const group = document.createElement("div");
+          group.className = "likert-group";
+          group.setAttribute("role", "radiogroup");
+          const groupName = `score_${cellKey(f.id, o.id)}`;
+          const currentValue = state.scoresUI[f.id]?.[o.id];
+          for (let n = 1; n <= 5; n++) {
+            const optionLabel = document.createElement("label");
+            optionLabel.className = "likert-option";
+            const radio = document.createElement("input");
+            radio.type = "radio";
+            radio.name = groupName;
+            radio.value = String(n);
+            if (currentValue === n) radio.checked = true;
+            radio.onchange = () => {
+              state.scoresUI[f.id] ||= {};
+              state.scoresUI[f.id][o.id] = n;
+              touchedCells.add(cellKey(f.id, o.id));
+              renderPreview();
+            };
+            const numberSpan = document.createElement("span");
+            numberSpan.textContent = String(n);
+            optionLabel.append(radio, numberSpan);
+            group.appendChild(optionLabel);
+          }
+          td.appendChild(group);
           tr.appendChild(td);
         });
 
