@@ -123,11 +123,15 @@ export class DecisionLayoutChart {
 
   private calculateWADDScores(): Record<string, number> {
     const waddScores: Record<string, number> = {};
+    // Normalize here so this always produces a true weighted average, regardless of
+    // whether the factor weights fed into the chart already sum to 1 (as the wizard's
+    // do) or are raw values (as they are in the manual layout).
+    const totalFactorWeight = this.factors.reduce((acc, f) => acc + Math.max(0, f.weight), 0) || 1;
     this.options.forEach(option => {
       let total = 0;
 
       this.factors.forEach(factor => {
-        const factorWeight = Math.max(0, factor.weight);
+        const factorWeight = Math.max(0, factor.weight) / totalFactorWeight;
         const rawScore = this.scores[factor.id]?.[option.id] ?? 0;
         const clamped = Math.max(-1, Math.min(1, rawScore));
         const utility = (clamped + 1) * 50; // Likert 1-5 -> utility 0-100 ((likert-1)*25)
