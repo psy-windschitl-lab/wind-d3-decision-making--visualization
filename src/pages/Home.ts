@@ -9,6 +9,7 @@ const Home: Page = (root, { navigate }) => {
       <p>1. You specify your different options</p>
       <p>2. You determine what factors to consider and which are the most important to you.</p>
       <p>3. Use the built layout to guide your decision.</p>
+      <p style="color:var(--muted); font-size:0.9em">Best used on a desktop or laptop browser.</p>
       <button id="go" style="padding:.5rem .8rem;border-radius:.5rem;border:none;background:var(--accent);color:white">Open Builder</button>
     </section>`;
   root.querySelector<HTMLButtonElement>("#go")!.onclick = () => navigate("/builder");
