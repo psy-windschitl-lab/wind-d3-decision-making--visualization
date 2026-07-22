@@ -124,26 +124,17 @@ export class DecisionLayoutChart {
   private calculateWADDScores(): Record<string, number> {
     const waddScores: Record<string, number> = {};
     this.options.forEach(option => {
-      let weightedTotal = 0;
-      let weightSum = 0;
-      const optionWeight = Math.max(0, option.weight);
+      let total = 0;
 
       this.factors.forEach(factor => {
         const factorWeight = Math.max(0, factor.weight);
-        if (!factorWeight || !optionWeight) return;
-
         const rawScore = this.scores[factor.id]?.[option.id] ?? 0;
         const clamped = Math.max(-1, Math.min(1, rawScore));
-        const normalizedUtility = (clamped + 1) / 2; // map [-1,1] → [0,1]
-        const combinedWeight = factorWeight * optionWeight;
-
-        weightedTotal += combinedWeight * normalizedUtility;
-        weightSum += combinedWeight;
+        const utility = (clamped + 1) * 50; // Likert 1-5 -> utility 0-100 ((likert-1)*25)
+        total += factorWeight * utility;
       });
 
-      const normalized = weightSum ? weightedTotal / weightSum : 0;
-      const scaled = normalized * 10;
-      waddScores[option.id] = Number(scaled.toFixed(2));
+      waddScores[option.id] = Number(total.toFixed(2));
     });
     return waddScores;
   }
@@ -738,7 +729,7 @@ export class DecisionLayoutChart {
             this.gWADD
               .selectAll<SVGGElement, Option>("g.wadd")
               .select("text")
-              .text(d => `WADD: ${waddScores[d.id].toFixed(1)}/10`);
+              .text(d => `WADD: ${waddScores[d.id].toFixed(1)}/100`);
           }
         })
         .on("end", () => {
@@ -803,7 +794,7 @@ export class DecisionLayoutChart {
         .transition(t)
         .attr("x", (_, i) => colWidths[i] / 2)
         .attr("y", 20)
-        .text(d => `WADD: ${waddScores[d.id].toFixed(1)}/10`);
+        .text(d => `WADD: ${waddScores[d.id].toFixed(1)}/100`);
 
       wadd.exit().remove();
     } else {
