@@ -5,8 +5,14 @@ import { drag } from "d3-drag";
 import { transition } from "d3";
 
 export type Factor = { id: string; label: string; weight: number };
-export type Option = { id: string; label: string; weight: number };
+export type Option = { id: string; label: string; weight: number; identifier?: string };
 export type Scores = Record<string, Record<string, number>>;
+
+// "Option A", "Option B", ... derived from a column's current position, matching the
+// same convention used in the wizard (layoutBuilderFactory.ts).
+const optionLetter = (n: number) => String.fromCharCode(64 + n);
+const optionIdentifier = (idx: number) => `Option ${optionLetter(idx + 1)}`;
+const FACTOR_IDENTIFIER = "Factor";
 
 export type LayoutConfig = {
   width: number;
@@ -20,6 +26,8 @@ export type LayoutConfig = {
   neutralCellColors?: { pos: string; neg: string };
   markCellsOnClick?: boolean;
   onScoreEdit?: (factorId: string, optionId: string) => void;
+  showAddControls?: boolean;
+  showIdentifierPrefix?: boolean;
 };
 
 const DEFAULTS: Required<Omit<LayoutConfig, "width" | "height">> = {
@@ -40,6 +48,8 @@ const DEFAULTS: Required<Omit<LayoutConfig, "width" | "height">> = {
   },
   markCellsOnClick: false,
   onScoreEdit: undefined,
+  showAddControls: true,
+  showIdentifierPrefix: false,
 };
 
 type ChartDataInput = {
@@ -164,7 +174,7 @@ export class DecisionLayoutChart {
   }
 
   render() {
-    const { width: initialWidth, height: initialHeight, margin, colors, padding, onUpdate, showWADD, neutralCellColors, markCellsOnClick } = this.cfg;
+    const { width: initialWidth, height: initialHeight, margin, colors, padding, onUpdate, showWADD, neutralCellColors, markCellsOnClick, showAddControls, showIdentifierPrefix } = this.cfg;
     const ROW_GAP = Math.max(2, padding.row);
     const COL_GAP = Math.max(2, padding.col);
     const MAX_ITEMS = 5;
@@ -237,7 +247,7 @@ export class DecisionLayoutChart {
 
     this.svg.attr("width", initialWidth).attr("height", initialHeight);
 
-    const HEADER_H = 36;
+    const HEADER_H = showIdentifierPrefix ? 46 : 36;
     const col = this.gCols
       .selectAll<SVGGElement, Option>("g.col")
       .data(this.options, (d: any) => d.id);
@@ -270,17 +280,34 @@ export class DecisionLayoutChart {
       .attr("width", (_, i) => colWidths[i] - COL_GAP)
       .attr("height", HEADER_H)
       .attr("fill", colors.headerBg);
-    const headerText = colAll.select("text.header-text")
-      .text(d => d.label)
+    const headerText = colAll.select<SVGTextElement>("text.header-text")
       .style("pointer-events", "auto")
       .on("dblclick", (event, d) => {
         if (this.editingId) return;
         this.editingId = d.id;
         this.render();
       });
+    if (showIdentifierPrefix) {
+      headerText.each(function (d, i) {
+        const textEl = select(this);
+        textEl.selectAll("tspan").remove();
+        textEl.append("tspan")
+          .attr("x", 0)
+          .attr("dy", "-0.35em")
+          .style("font-size", "0.7em")
+          .style("font-weight", 600)
+          .text(d.identifier ? `Option ${d.identifier}` : optionIdentifier(i));
+        textEl.append("tspan")
+          .attr("x", 0)
+          .attr("dy", "1.15em")
+          .text(d.label);
+      });
+    } else {
+      headerText.text(d => d.label);
+    }
     headerText.transition(t)
       .attr("x", (_, i) => colWidths[i] / 2 - 10)
-      .attr("y", HEADER_H / 2);
+      .attr("y", showIdentifierPrefix ? HEADER_H / 2 - 8 : HEADER_H / 2);
 
     const headerInput = colAll.select("foreignObject.header-input")
       .style("display", d => this.editingId === d.id ? "block" : "none")
@@ -448,16 +475,28 @@ export class DecisionLayoutChart {
       .attr("height", (_, i) => rowHeights[i] - ROW_GAP)
       .attr("fill", colors.headerBg)
       .style("cursor", "move");
-    rowAll.select("text.row-text")
+    const rowText = rowAll.select<SVGTextElement>("text.row-text")
       .attr("x", margin.left / 2 - 10)
       .attr("y", (_, i) => rowHeights[i] / 2)
-      .text(d => d.label)
       .style("pointer-events", "auto")
       .on("dblclick", (event, d) => {
         if (this.editingId) return;
         this.editingId = d.id;
         this.render();
       });
+    if (showIdentifierPrefix) {
+      rowText.each(function (d) {
+        const textEl = select(this);
+        textEl.selectAll("tspan").remove();
+        textEl.append("tspan")
+          .style("font-size", "0.7em")
+          .style("font-weight", 600)
+          .text(`${FACTOR_IDENTIFIER}: `);
+        textEl.append("tspan").text(d.label);
+      });
+    } else {
+      rowText.text(d => d.label);
+    }
     rowAll.select("foreignObject.row-input")
       .attr("x", 10)
       .attr("y", ROW_GAP / 2)
@@ -806,7 +845,7 @@ export class DecisionLayoutChart {
     }
 
     const controls = this.gControls.selectAll<SVGGElement, string>("g.control")
-      .data(this.options.length < MAX_ITEMS ? ["add-option"] : [], d => d);
+      .data(showAddControls && this.options.length < MAX_ITEMS ? ["add-option"] : [], d => d);
 
     const controlsEnter = controls.enter().append("g").attr("class", "control");
     controlsEnter.append("rect")
@@ -850,7 +889,7 @@ export class DecisionLayoutChart {
     controls.exit().remove();
 
     const factorControls = this.gControls.selectAll<SVGGElement, string>("g.factor-control")
-      .data(this.factors.length < MAX_ITEMS ? ["add-factor"] : [], d => d);
+      .data(showAddControls && this.factors.length < MAX_ITEMS ? ["add-factor"] : [], d => d);
 
     const factorControlsEnter = factorControls.enter().append("g").attr("class", "factor-control");
     factorControlsEnter.append("rect")
