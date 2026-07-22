@@ -59,12 +59,6 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     root.innerHTML = `
       <section class="card">
-        <h1 class="h1">Build your decision layout</h1>
-        <ol style="margin:0 0 12px 1.1rem; color:var(--muted)">
-          <li>Add up to 5 choice options</li>
-          <li>Add factors, then rate their importance</li>
-          <li>Rate each factor of each choice option (1–5)</li>
-        </ol>
         <div id="step"></div>
         <div style="display:flex; gap:.5rem; margin-top:12px">
           <button id="backBtn" style="display:none">Back</button>
@@ -384,7 +378,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function renderStep2Importance() {
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 2 — Rate Importance (Part 2 of 2)</h2>
-        <p style="color:var(--muted); margin-top:4px">
+        <p style="color:var(--muted); margin-top:4px; font-size:1.8em; line-height:1.3">
           Now please rate the importance of each factor. For each factor, think about
           how your options differ and then rate how important these differences are to you.
         </p>
@@ -407,11 +401,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
         const row = document.createElement("div");
         row.style.display = "grid";
-        row.style.gridTemplateColumns = "80px 1fr 90px";
+        row.style.gridTemplateColumns = "1fr 90px";
         row.style.gap = "8px";
-
-        const idCell = document.createElement("div");
-        idCell.textContent = String(idx + 1);
 
         const input = document.createElement("input");
         input.type = "text";
@@ -432,15 +423,16 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           renderPreview();
         };
 
-        row.append(idCell, input, remove);
+        row.append(input, remove);
 
         const ratingLabel = document.createElement("p");
         ratingLabel.style.color = "var(--muted)";
-        ratingLabel.style.margin = "8px 0 0";
+        ratingLabel.style.margin = "2px 0 0 20px";
         ratingLabel.textContent = "Rate the importance of this factor for your decision";
 
         const group = document.createElement("div");
         group.className = "importance-group";
+        group.style.marginLeft = "20px";
         group.setAttribute("role", "radiogroup");
         const groupName = `importance_${fac.id}`;
         IMPORTANCE_LABELS.forEach((text, i) => {
@@ -463,7 +455,10 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           group.appendChild(optionLabel);
         });
 
-        block.append(row, ratingLabel, group);
+        const spacer = document.createElement("div");
+        spacer.style.height = "1.4em";
+
+        block.append(row, ratingLabel, group, spacer);
         container.appendChild(block);
       });
     }
@@ -579,6 +574,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         if (config.previewMode === "after-finish") {
           previewCard.style.display = "";
         }
+        decisionHost.style.display = "";
         renderPreview(true);
       }
     };
@@ -697,6 +693,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     }
 
     const decisionHost = document.createElement("div");
+    if (!finished) decisionHost.style.display = "none";
     root.appendChild(decisionHost);
     attachDecisionWorkflow({
       host: decisionHost,
