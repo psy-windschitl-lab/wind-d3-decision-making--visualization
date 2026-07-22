@@ -62,7 +62,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         <h1 class="h1">Build your decision layout</h1>
         <ol style="margin:0 0 12px 1.1rem; color:var(--muted)">
           <li>Add up to 5 choice options</li>
-          <li>Add factors and set importance (1–5)</li>
+          <li>Add factors, then rate their importance</li>
           <li>Rate each factor of each choice option (1–5)</li>
         </ol>
         <div id="step"></div>
@@ -130,6 +130,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
               const existing = idToFactor.get(newF.id);
               const nextImportance = nextImportanceFor(newF);
               if (existing) {
+                if (nextImportance !== existing.uiImportance) touchedImportance.add(existing.id);
                 existing.label = newF.label;
                 existing.uiImportance = nextImportance;
               } else {
@@ -244,14 +245,16 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         newScores[f.id] = {};
         for (const o of next.options) {
           const kept = prevScores[f.id]?.[o.id];
-          newScores[f.id][o.id] = kept ?? 3;
+          if (kept !== undefined) {
+            newScores[f.id][o.id] = kept;
+          }
         }
       }
       next.scoresUI = newScores;
       pruneTouched();
     }
 
-    let currentStep = 1 as 1 | 2 | 3;
+    let currentStep = 1 as 1 | 2 | 3 | 4;
 
     function renderStep1() {
       stepHost.innerHTML = `
@@ -318,22 +321,21 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep2() {
       stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 2 — Add factors</h2>
+        <h2 class="h1" style="font-size:1.2rem">Step 2 — Add factors (Part 1 of 2)</h2>
         <div id="factors"></div>
         <div style="margin-top:8px">
           <button id="addFactorBtn">Add factor</button>
         </div>
-        <p style="color:var(--muted); margin-top:8px">Weights scale the bars in the visualization.</p>
       `;
       const container = stepHost.querySelector<HTMLDivElement>("#factors")!;
-      drawFactors(container);
+      drawFactorsList(container);
 
       stepHost.querySelector<HTMLButtonElement>("#addFactorBtn")!.onclick = () => {
         const prev = deepClone(state);
         const idx = state.factors.length + 1;
         state.factors.push({ id: newFacId(), label: `Factor ${idx}`, uiImportance: 3 });
         reconcileScores(prev, state);
-        drawFactors(container);
+        drawFactorsList(container);
         renderPreview();
       };
 
@@ -341,18 +343,12 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       nextBtn.textContent = "Next";
     }
 
-    const factorLabelUpdaters: Array<() => void> = [];
-    const refreshFactorLabels = () => {
-      factorLabelUpdaters.forEach(update => update());
-    };
-
-    function drawFactors(container: HTMLElement) {
+    function drawFactorsList(container: HTMLElement) {
       container.innerHTML = "";
-      factorLabelUpdaters.length = 0;
       state.factors.forEach((fac, idx) => {
         const row = document.createElement("div");
         row.style.display = "grid";
-        row.style.gridTemplateColumns = "80px 1fr 220px 90px";
+        row.style.gridTemplateColumns = "80px 1fr 90px";
         row.style.gap = "8px";
         row.style.margin = "6px 0";
 
@@ -368,28 +364,63 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           renderPreview();
         };
 
-        const sliderWrap = document.createElement("div");
-        const slider = document.createElement("input");
-        slider.type = "range"; slider.min = "1"; slider.max = "5"; slider.step = "1";
-        slider.value = String(fac.uiImportance);
-        if (!touchedImportance.has(fac.id)) slider.classList.add("slider-unset");
-        const label = document.createElement("span");
-        label.style.marginLeft = "8px";
-        const updateLab = () => {
-          const weights = computeNormalizedWeights(state.factors);
-          label.textContent = `Importance: ${slider.value} → weight ${(weights[fac.id] ?? 0).toFixed(2)}`;
-        };
-        factorLabelUpdaters.push(updateLab);
-        slider.oninput = () => {
-          slider.classList.remove("slider-unset");
-          touchedImportance.add(fac.id);
-          fac.uiImportance = Number(slider.value);
-          slider.value = String(fac.uiImportance);
-          refreshFactorLabels();
+        const remove = document.createElement("button");
+        remove.textContent = "Remove";
+        remove.onclick = () => {
+          const prev = deepClone(state);
+          state.factors.splice(idx, 1);
+          reconcileScores(prev, state);
+          drawFactorsList(container);
           renderPreview();
         };
-        updateLab();
-        sliderWrap.append(slider, label);
+
+        row.append(idCell, input, remove);
+        container.appendChild(row);
+      });
+    }
+
+    const IMPORTANCE_LABELS = ["Low", "Mild", "Moderate", "High", "Very High"];
+
+    function renderStep2Importance() {
+      stepHost.innerHTML = `
+        <h2 class="h1" style="font-size:1.2rem">Step 2 — Rate Importance (Part 2 of 2)</h2>
+        <p style="color:var(--muted); margin-top:4px">
+          Now please rate the importance of each factor. For each factor, think about
+          how your options differ and then rate how important these differences are to you.
+        </p>
+        <div id="factorsImportance"></div>
+      `;
+      const container = stepHost.querySelector<HTMLDivElement>("#factorsImportance")!;
+      drawFactorsImportance(container);
+
+      backBtn.style.display = "";
+      nextBtn.textContent = "Next";
+    }
+
+    function drawFactorsImportance(container: HTMLElement) {
+      container.innerHTML = "";
+      state.factors.forEach((fac, idx) => {
+        const block = document.createElement("div");
+        block.style.margin = "14px 0";
+        block.style.paddingBottom = "10px";
+        block.style.borderBottom = "1px solid #1e2a4a";
+
+        const row = document.createElement("div");
+        row.style.display = "grid";
+        row.style.gridTemplateColumns = "80px 1fr 90px";
+        row.style.gap = "8px";
+
+        const idCell = document.createElement("div");
+        idCell.textContent = String(idx + 1);
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = fac.label;
+        input.placeholder = `Factor ${idx + 1}`;
+        input.oninput = () => {
+          fac.label = input.value.trim() || `Factor ${idx + 1}`;
+          renderPreview();
+        };
 
         const remove = document.createElement("button");
         remove.textContent = "Remove";
@@ -397,16 +428,47 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           const prev = deepClone(state);
           state.factors.splice(idx, 1);
           reconcileScores(prev, state);
-          drawFactors(container);
+          drawFactorsImportance(container);
           renderPreview();
         };
 
-        row.append(idCell, input, sliderWrap, remove);
-        container.appendChild(row);
+        row.append(idCell, input, remove);
+
+        const ratingLabel = document.createElement("p");
+        ratingLabel.style.color = "var(--muted)";
+        ratingLabel.style.margin = "8px 0 0";
+        ratingLabel.textContent = "Rate the importance of this factor for your decision";
+
+        const group = document.createElement("div");
+        group.className = "importance-group";
+        group.setAttribute("role", "radiogroup");
+        const groupName = `importance_${fac.id}`;
+        IMPORTANCE_LABELS.forEach((text, i) => {
+          const level = i + 1;
+          const optionLabel = document.createElement("label");
+          optionLabel.className = "importance-option";
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = groupName;
+          radio.value = String(level);
+          if (touchedImportance.has(fac.id) && fac.uiImportance === level) radio.checked = true;
+          radio.onchange = () => {
+            touchedImportance.add(fac.id);
+            fac.uiImportance = level;
+            renderPreview();
+          };
+          const textSpan = document.createElement("span");
+          textSpan.textContent = text;
+          optionLabel.append(radio, textSpan);
+          group.appendChild(optionLabel);
+        });
+
+        block.append(row, ratingLabel, group);
+        container.appendChild(block);
       });
     }
 
-    function renderStep3() {
+    function renderStep4() {
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 3 — Score each factor per option</h2>
         <div style="overflow:auto; max-width:100%">
@@ -473,10 +535,11 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function renderCurrentStep() {
       if (currentStep === 1) renderStep1();
       else if (currentStep === 2) renderStep2();
-      else renderStep3();
+      else if (currentStep === 3) renderStep2Importance();
+      else renderStep4();
     }
 
-    function go(step: 1 | 2 | 3) {
+    function go(step: 1 | 2 | 3 | 4) {
       currentStep = step;
       renderCurrentStep();
     }
@@ -484,6 +547,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     backBtn.onclick = () => {
       if (currentStep === 2) go(1);
       else if (currentStep === 3) go(2);
+      else if (currentStep === 4) go(3);
     };
 
     nextBtn.onclick = () => {
@@ -493,13 +557,16 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         go(2);
       } else if (currentStep === 2) {
         if (state.factors.length < 1) { alert("Please add at least 1 factor."); return; }
+        const prev = deepClone(state); reconcileScores(prev, state);
+        go(3);
+      } else if (currentStep === 3) {
         const untouchedFactor = state.factors.find(f => !touchedImportance.has(f.id));
         if (untouchedFactor) {
           alert(`Please set an importance rating for "${untouchedFactor.label}" before continuing.`);
           return;
         }
         const prev = deepClone(state); reconcileScores(prev, state);
-        go(3);
+        go(4);
       } else {
         const untouchedCell = state.factors
           .flatMap(f => state.options.map(o => ({ f, o })))
