@@ -25,12 +25,15 @@ const FACTOR_IDENTIFIER = "Factor";
 // own description (regular size) - used for option/choice columns.
 function buildOptionHeaderCell(tag: "th" | "td", identifier: string, description: string): HTMLElement {
   const cell = document.createElement(tag);
+  cell.style.maxWidth = "180px";
   const idLine = document.createElement("div");
   idLine.style.fontSize = "0.75em";
   idLine.style.color = "var(--muted)";
   idLine.style.fontWeight = "600";
   idLine.textContent = `Option ${identifier}`;
   const descLine = document.createElement("div");
+  descLine.style.overflowWrap = "break-word";
+  descLine.style.whiteSpace = "normal";
   descLine.textContent = description;
   cell.append(idLine, descLine);
   return cell;
@@ -40,12 +43,15 @@ function buildOptionHeaderCell(tag: "th" | "td", identifier: string, description
 // person's own description (regular size) on the same line - used for factor rows.
 function buildFactorHeaderCell(tag: "th" | "td", description: string): HTMLElement {
   const cell = document.createElement(tag);
+  cell.style.maxWidth = "220px";
   const idSpan = document.createElement("span");
   idSpan.style.fontSize = "0.7em";
   idSpan.style.color = "var(--muted)";
   idSpan.style.fontWeight = "600";
   idSpan.textContent = `${FACTOR_IDENTIFIER}: `;
   const descSpan = document.createElement("span");
+  descSpan.style.overflowWrap = "break-word";
+  descSpan.style.whiteSpace = "normal";
   descSpan.textContent = description;
   cell.append(idSpan, descSpan);
   return cell;
@@ -337,7 +343,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         input.type = "text";
         input.value = opt.label;
         input.placeholder = "Describe this option";
-        input.style.flex = "1";
+        input.style.flex = "0 0 33%";
         input.oninput = () => {
           opt.label = input.value;
           renderPreview();
@@ -360,7 +366,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep2() {
       stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 2 — Add factors (Part 1 of 2)</h2>
+        <h2 class="h1" style="font-size:1.2rem">Step 2 — Add factors</h2>
         <div id="factors"></div>
         <div style="margin-top:8px">
           <button id="addFactorBtn">Add factor</button>
@@ -400,7 +406,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         input.type = "text";
         input.value = fac.label;
         input.placeholder = "Describe this factor";
-        input.style.flex = "1";
+        input.style.flex = "0 0 33%";
         input.oninput = () => {
           fac.label = input.value;
           renderPreview();
@@ -426,7 +432,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep2Importance() {
       stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 2 — Rate Importance (Part 2 of 2)</h2>
+        <h2 class="h1" style="font-size:1.2rem">Step 4 — Rate Factor Importance</h2>
         <p style="color:var(--muted); margin-top:4px; font-size:1.8em; line-height:1.3">
           Now please rate the importance of each factor. For each factor, think about
           how your options differ and then rate how important these differences are to you.
@@ -463,7 +469,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         input.type = "text";
         input.value = fac.label;
         input.placeholder = "Describe this factor";
-        input.style.flex = "1";
+        input.style.flex = "0 0 33%";
         input.oninput = () => {
           fac.label = input.value;
           renderPreview();
@@ -657,8 +663,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function renderCurrentStep() {
       if (currentStep === 1) renderStep1();
       else if (currentStep === 2) renderStep2();
-      else if (currentStep === 3) renderStep2Importance();
-      else renderStep4();
+      else if (currentStep === 3) renderStep4();
+      else renderStep2Importance();
     }
 
     function go(step: 1 | 2 | 3 | 4) {
@@ -682,19 +688,19 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const prev = deepClone(state); reconcileScores(prev, state);
         go(3);
       } else if (currentStep === 3) {
-        const untouchedFactor = state.factors.find(f => !touchedImportance.has(f.id));
-        if (untouchedFactor) {
-          alert(`Please set an importance rating for "${untouchedFactor.label}" before continuing.`);
+        const untouchedCell = state.factors
+          .flatMap(f => state.options.map(o => ({ f, o })))
+          .find(({ f, o }) => !touchedCells.has(cellKey(f.id, o.id)));
+        if (untouchedCell) {
+          alert(`Please rate "${untouchedCell.o.label}" on "${untouchedCell.f.label}" before continuing.`);
           return;
         }
         const prev = deepClone(state); reconcileScores(prev, state);
         go(4);
       } else {
-        const untouchedCell = state.factors
-          .flatMap(f => state.options.map(o => ({ f, o })))
-          .find(({ f, o }) => !touchedCells.has(cellKey(f.id, o.id)));
-        if (untouchedCell) {
-          alert(`Please rate "${untouchedCell.o.label}" on "${untouchedCell.f.label}" before finishing.`);
+        const untouchedFactor = state.factors.find(f => !touchedImportance.has(f.id));
+        if (untouchedFactor) {
+          alert(`Please set an importance rating for "${untouchedFactor.label}" before finishing.`);
           return;
         }
         finished = true;
