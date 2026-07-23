@@ -86,6 +86,8 @@ export class DecisionLayoutChart {
                  showWADD: cfg.showWADD ?? DEFAULTS.showWADD,
                  neutralCellColors: { ...DEFAULTS.neutralCellColors, ...(cfg.neutralCellColors || {}) },
                  markCellsOnClick: cfg.markCellsOnClick ?? DEFAULTS.markCellsOnClick,
+                 showAddControls: cfg.showAddControls ?? DEFAULTS.showAddControls,
+                 showIdentifierPrefix: cfg.showIdentifierPrefix ?? DEFAULTS.showIdentifierPrefix,
                  onScoreEdit: cfg.onScoreEdit };
     this.onUpdate = cfg.onUpdate;
     this.onScoreEdit = cfg.onScoreEdit;
