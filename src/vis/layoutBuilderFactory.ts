@@ -422,6 +422,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     }
 
     const IMPORTANCE_LABELS = ["Low", "Mild", "Moderate", "High", "Very High"];
+    const SCORE_LABELS = ["very bad", "bad", "okay", "good", "very good"];
 
     function renderStep2Importance() {
       stepHost.innerHTML = `
@@ -524,11 +525,29 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep4() {
       stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 3 — Score each factor per option</h2>
-        <p style="margin:10px 0 0">Now, you'll rate each option on each factor, using this scale.</p>
-        <p style="margin:6px 0 0; color:var(--muted)">
-          1 = very bad<br>2 = bad<br>3 = okay<br>4 = good<br>5 = very good
-        </p>
+        <h2 class="h1" style="font-size:1.2rem">Step 3 – Rate the options on each factor</h2>
+        <p style="margin:10px 0 16px">Now, you'll rate each option on each factor, using this scale.</p>
+        <div style="display:flex; justify-content:center">
+          <svg viewBox="0 0 700 190" width="100%" style="max-width:640px; overflow:visible">
+            <g font-family="inherit">
+              ${[
+                { n: 1, boxX: 90, labelX: 55 },
+                { n: 2, boxX: 220, labelX: 195 },
+                { n: 3, boxX: 350, labelX: 350 },
+                { n: 4, boxX: 480, labelX: 505 },
+                { n: 5, boxX: 610, labelX: 650 },
+              ].map(({ n, boxX, labelX }) => `
+                <line x1="${boxX}" y1="65" x2="${labelX}" y2="140" stroke="rgba(232,238,252,0.35)" stroke-width="1.5" />
+                <rect x="${boxX - 25}" y="15" width="50" height="50" rx="8" ry="8"
+                  fill="rgba(232,238,252,0.08)" stroke="rgba(232,238,252,0.25)" />
+                <text x="${boxX}" y="46" text-anchor="middle" dominant-baseline="middle"
+                  fill="var(--fg)" font-weight="600" font-size="22">${n}</text>
+                <text x="${labelX}" y="158" text-anchor="middle"
+                  fill="var(--muted)" font-style="italic" font-size="19">${SCORE_LABELS[n - 1]}</text>
+              `).join("")}
+            </g>
+          </svg>
+        </div>
         <hr style="border:none; border-top:1px solid #1e2a4a; margin:20px 0" />
         <div id="factorBlocks"></div>
       `;
@@ -541,7 +560,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function drawFactorBlocks(container: HTMLElement) {
       container.innerHTML = "";
-      for (const f of state.factors) {
+      for (let fIdx = 0; fIdx < state.factors.length; fIdx++) {
+        const f = state.factors[fIdx];
         const block = document.createElement("div");
         block.style.margin = "0 0 40px";
 
@@ -558,21 +578,27 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         bigFactor.textContent = f.label;
 
         const instr1 = document.createElement("p");
-        instr1.style.margin = "0 0 6px";
+        instr1.style.margin = fIdx === 0 ? "0 0 6px" : "0 0 14px";
         instr1.innerHTML = `Rate each option (relative to the other options) <u>on this factor</u>.`;
 
-        const instr2 = document.createElement("p");
-        instr2.style.margin = "0 0 14px";
-        instr2.style.color = "var(--muted)";
-        instr2.innerHTML = `For example, give a 5 if you thought an option was "very good" compared to other options <u>on this factor</u>.`;
+        block.append(considerLine, bigFactor, instr1);
+
+        if (fIdx === 0) {
+          const instr2 = document.createElement("p");
+          instr2.style.margin = "0 0 14px";
+          instr2.style.color = "var(--muted)";
+          instr2.innerHTML = `For example, give a 1 if you thought an option was "very bad" compared to other options <u>on this factor</u>. Give it a 5 if you thought it was "very good."`;
+          block.appendChild(instr2);
+        }
 
         const row = document.createElement("div");
         row.style.display = "flex";
-        row.style.gap = "24px";
+        row.style.gap = "48px";
         row.style.flexWrap = "wrap";
 
         state.options.forEach((o) => {
           const cell = document.createElement("div");
+          cell.style.textAlign = "center";
 
           const idLine = document.createElement("div");
           idLine.style.fontSize = "0.75em";
@@ -586,12 +612,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
           const group = document.createElement("div");
           group.className = "likert-group";
+          group.style.justifyContent = "center";
           group.setAttribute("role", "radiogroup");
           const groupName = `score_${cellKey(f.id, o.id)}`;
           const currentValue = state.scoresUI[f.id]?.[o.id];
           for (let n = 1; n <= 5; n++) {
             const optionLabel = document.createElement("label");
             optionLabel.className = "likert-option";
+            optionLabel.title = SCORE_LABELS[n - 1];
             const radio = document.createElement("input");
             radio.type = "radio";
             radio.name = groupName;
@@ -614,7 +642,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           row.appendChild(cell);
         });
 
-        block.append(considerLine, bigFactor, instr1, instr2, row);
+        block.appendChild(row);
         container.appendChild(block);
 
         // Don't reveal the next factor's block until this one is fully rated.
