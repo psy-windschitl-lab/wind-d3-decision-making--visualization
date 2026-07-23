@@ -14,6 +14,57 @@ const optionLetter = (n: number) => String.fromCharCode(64 + n);
 const optionIdentifier = (idx: number) => `Option ${optionLetter(idx + 1)}`;
 const FACTOR_IDENTIFIER = "Factor";
 
+// Wraps text into tspans that fit within maxWidth, using the text element's own real
+// measured width (SVG has no native word-wrap). Caps at maxLines, truncating the last
+// line with an ellipsis if there's more text than fits.
+function wrapSvgText(
+  textSelection: Selection<SVGTextElement, unknown, null, undefined>,
+  text: string,
+  x: number,
+  startDy: string,
+  lineHeight: string,
+  maxWidth: number,
+  maxLines: number
+) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const measure = textSelection.append("tspan").style("visibility", "hidden");
+  const lines: string[] = [];
+  let current = "";
+  let wordIdx = 0;
+  while (wordIdx < words.length && lines.length < maxLines) {
+    const word = words[wordIdx];
+    const test = current ? `${current} ${word}` : word;
+    measure.text(test);
+    const fits = measure.node()!.getComputedTextLength() <= maxWidth;
+    if (fits || !current) {
+      current = test;
+      wordIdx++;
+    } else {
+      lines.push(current);
+      current = "";
+    }
+  }
+  if (current) lines.push(current);
+  const hasLeftover = wordIdx < words.length;
+  if (hasLeftover && lines.length) {
+    let last = lines[lines.length - 1];
+    measure.text(`${last}…`);
+    while (last.length > 0 && measure.node()!.getComputedTextLength() > maxWidth) {
+      last = last.slice(0, -1);
+      measure.text(`${last}…`);
+    }
+    lines[lines.length - 1] = `${last}…`;
+  }
+  measure.remove();
+  lines.forEach((line, i) => {
+    textSelection.append("tspan")
+      .attr("x", x)
+      .attr("dy", i === 0 ? startDy : lineHeight)
+      .text(line);
+  });
+  return lines.length;
+}
+
 export type LayoutConfig = {
   width: number;
   height: number;
@@ -249,7 +300,7 @@ export class DecisionLayoutChart {
 
     this.svg.attr("width", initialWidth).attr("height", initialHeight);
 
-    const HEADER_H = showIdentifierPrefix ? 46 : 36;
+    const HEADER_H = showIdentifierPrefix ? 72 : 36;
     const col = this.gCols
       .selectAll<SVGGElement, Option>("g.col")
       .data(this.options, (d: any) => d.id);
@@ -294,23 +345,21 @@ export class DecisionLayoutChart {
         const textEl = select(this);
         textEl.selectAll("tspan").remove();
         const xPos = colWidths[i] / 2 - 10;
+        const availWidth = Math.max(20, colWidths[i] - COL_GAP - 24);
         textEl.append("tspan")
           .attr("x", xPos)
-          .attr("dy", "-0.35em")
+          .attr("dy", "-1.3em")
           .style("font-size", "0.7em")
           .style("font-weight", 600)
           .text(d.identifier ? `Option ${d.identifier}` : optionIdentifier(i));
-        textEl.append("tspan")
-          .attr("x", xPos)
-          .attr("dy", "1.15em")
-          .text(d.label);
+        wrapSvgText(textEl, d.label, xPos, "1.15em", "1.15em", availWidth, 2);
       });
     } else {
       headerText.text(d => d.label);
     }
     headerText.transition(t)
       .attr("x", (_, i) => colWidths[i] / 2 - 10)
-      .attr("y", showIdentifierPrefix ? HEADER_H / 2 - 8 : HEADER_H / 2);
+      .attr("y", showIdentifierPrefix ? HEADER_H / 2 - 16 : HEADER_H / 2);
 
     const headerInput = colAll.select("foreignObject.header-input")
       .style("display", d => this.editingId === d.id ? "block" : "none")
@@ -488,14 +537,18 @@ export class DecisionLayoutChart {
         this.render();
       });
     if (showIdentifierPrefix) {
+      const availWidth = Math.max(20, margin.left - 40);
       rowText.each(function (d) {
         const textEl = select(this);
         textEl.selectAll("tspan").remove();
+        const xPos = margin.left / 2 - 10;
         textEl.append("tspan")
+          .attr("x", xPos)
+          .attr("dy", "-1.3em")
           .style("font-size", "0.7em")
           .style("font-weight", 600)
-          .text(`${FACTOR_IDENTIFIER}: `);
-        textEl.append("tspan").text(d.label);
+          .text(`${FACTOR_IDENTIFIER}:`);
+        wrapSvgText(textEl, d.label, xPos, "1.15em", "1.15em", availWidth, 2);
       });
     } else {
       rowText.text(d => d.label);
