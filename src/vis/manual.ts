@@ -44,17 +44,14 @@ const ManualLayout: Page = (root, ctx) => {
     options: [
       { id: "o1", label: "Option A", weight: 1 },
       { id: "o2", label: "Option B", weight: 1 },
-      { id: "o3", label: "Option C", weight: 1 },
     ],
     factors: [
       { id: "f1", label: "Factor 1", weight: 1 },
       { id: "f2", label: "Factor 2", weight: 1 },
-      { id: "f3", label: "Factor 3", weight: 1 },
     ],
     scores: {
-      f1: { o1: 0, o2: 0, o3: 0 },
-      f2: { o1: 0, o2: 0, o3: 0 },
-      f3: { o1: 0, o2: 0, o3: 0 },
+      f1: { o1: 0, o2: 0 },
+      f2: { o1: 0, o2: 0 },
     },
   };
 
