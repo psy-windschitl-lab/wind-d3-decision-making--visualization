@@ -293,14 +293,15 @@ export class DecisionLayoutChart {
       headerText.each(function (d, i) {
         const textEl = select(this);
         textEl.selectAll("tspan").remove();
+        const xPos = colWidths[i] / 2 - 10;
         textEl.append("tspan")
-          .attr("x", 0)
+          .attr("x", xPos)
           .attr("dy", "-0.35em")
           .style("font-size", "0.7em")
           .style("font-weight", 600)
           .text(d.identifier ? `Option ${d.identifier}` : optionIdentifier(i));
         textEl.append("tspan")
-          .attr("x", 0)
+          .attr("x", xPos)
           .attr("dy", "1.15em")
           .text(d.label);
       });
@@ -321,7 +322,7 @@ export class DecisionLayoutChart {
       .attr("y", -2)
       .attr("width", (_, i) => colWidths[i] - COL_GAP - 20)
       .attr("height", HEADER_H);
-    headerInput.on("blur", (event, d) => {
+    headerInput.on("focusout", (event, d) => {
         const input = (event.target as HTMLElement).querySelector("input")!;
         const newLabel = input.value.trim() || d.label;
         this.options = this.options.map(o => o.id === d.id ? { ...o, label: newLabel } : o);
@@ -508,7 +509,7 @@ export class DecisionLayoutChart {
       .html(d => `
         <input type="text" value="${d.label}" style="width:100%; height:100%; background:#1a2a5e; color:#fff; border:1px solid #3f51b5; border-radius:4px; padding:0 4px;" />
       `)
-      .on("blur", (event, d) => {
+      .on("focusout", (event, d) => {
         const input = (event.target as HTMLElement).querySelector("input")!;
         const newLabel = input.value.trim() || d.label;
         this.factors = this.factors.map(f => f.id === d.id ? { ...f, label: newLabel } : f);
@@ -688,6 +689,7 @@ export class DecisionLayoutChart {
     cellsEnter.append("rect").attr("class", "cell-bg").attr("fill", colors.grid).attr("rx", 6).attr("ry", 6);
     cellsEnter.append("rect").attr("class", "cell-pos").attr("fill", neutralCellColors.pos);
     cellsEnter.append("rect").attr("class", "cell-neg").attr("fill", neutralCellColors.neg);
+    cellsEnter.append("rect").attr("class", "cell-center-line").attr("fill", "#aab4c8");
     cellsEnter.append("rect").attr("class", "score-handle").style("cursor", "col-resize").attr("fill", "transparent");
 
     const all = cellsEnter.merge(cells);
@@ -730,6 +732,16 @@ export class DecisionLayoutChart {
         .attr("width", Math.max(0, wNeg - 2))
         .attr("height", Math.max(0, h - 2))
         .attr("fill", negFill);
+
+      // A faint hint that this cell is grabbable, shown only until it's been touched -
+      // once a real value is set, the bar itself is enough of a visual cue.
+      g.select<SVGRectElement>("rect.cell-center-line")
+        .transition(t)
+        .attr("x", x0 + w / 2 - 1)
+        .attr("y", y + 4)
+        .attr("width", 2)
+        .attr("height", Math.max(0, h - 8))
+        .style("opacity", isModified ? 0 : 0.35);
 
       g.select<SVGRectElement>("rect.score-handle")
         .transition(t)
