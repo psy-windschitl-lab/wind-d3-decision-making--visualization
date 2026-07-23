@@ -518,40 +518,72 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       });
     }
 
+    function isFactorFullyRated(f: { id: string }): boolean {
+      return state.options.every(o => touchedCells.has(cellKey(f.id, o.id)));
+    }
+
     function renderStep4() {
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 3 — Score each factor per option</h2>
-        <div style="overflow:auto; max-width:100%">
-          <table class="table" style="width:100%; min-width:680px">
-            <thead>
-              <tr>
-                <th scope="col">Factor</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+        <p style="margin:10px 0 0">Now, you'll rate each option on each factor, using this scale.</p>
+        <p style="margin:6px 0 0; color:var(--muted)">
+          1 = very bad<br>2 = bad<br>3 = okay<br>4 = good<br>5 = very good
+        </p>
+        <hr style="border:none; border-top:1px solid #1e2a4a; margin:20px 0" />
+        <div id="factorBlocks"></div>
       `;
+      const container = stepHost.querySelector<HTMLDivElement>("#factorBlocks")!;
+      drawFactorBlocks(container);
 
-      const headRow = stepHost.querySelector<HTMLTableRowElement>("thead tr")!;
-      state.options.forEach((o) => {
-        const th = buildOptionHeaderCell("th", o.identifier, o.label) as HTMLTableCellElement;
-        th.scope = "col";
-        headRow.appendChild(th);
-      });
+      backBtn.style.display = "";
+      nextBtn.textContent = "Finish";
+    }
 
-      const tbody = stepHost.querySelector<HTMLTableSectionElement>("tbody")!;
-      tbody.innerHTML = "";
+    function drawFactorBlocks(container: HTMLElement) {
+      container.innerHTML = "";
+      for (const f of state.factors) {
+        const block = document.createElement("div");
+        block.style.margin = "0 0 40px";
 
-      state.factors.forEach((f) => {
-        const tr = document.createElement("tr");
-        const th = buildFactorHeaderCell("th", f.label) as HTMLTableCellElement;
-        th.scope = "row";
-        tr.appendChild(th);
+        const considerLine = document.createElement("p");
+        considerLine.style.margin = "0";
+        considerLine.style.color = "var(--muted)";
+        considerLine.textContent = "Consider this factor:";
+
+        const bigFactor = document.createElement("div");
+        bigFactor.style.fontSize = "2.2em";
+        bigFactor.style.fontWeight = "700";
+        bigFactor.style.lineHeight = "1.2";
+        bigFactor.style.margin = "2px 0 14px";
+        bigFactor.textContent = f.label;
+
+        const instr1 = document.createElement("p");
+        instr1.style.margin = "0 0 6px";
+        instr1.innerHTML = `Rate each option (relative to the other options) <u>on this factor</u>.`;
+
+        const instr2 = document.createElement("p");
+        instr2.style.margin = "0 0 14px";
+        instr2.style.color = "var(--muted)";
+        instr2.innerHTML = `For example, give a 5 if you thought an option was "very good" compared to other options <u>on this factor</u>.`;
+
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.gap = "24px";
+        row.style.flexWrap = "wrap";
 
         state.options.forEach((o) => {
-          const td = document.createElement("td");
-          td.style.minWidth = "140px";
+          const cell = document.createElement("div");
+
+          const idLine = document.createElement("div");
+          idLine.style.fontSize = "0.75em";
+          idLine.style.color = "var(--muted)";
+          idLine.style.fontWeight = "600";
+          idLine.textContent = `Option ${o.identifier}`;
+
+          const descLine = document.createElement("div");
+          descLine.style.marginBottom = "6px";
+          descLine.textContent = o.label;
+
           const group = document.createElement("div");
           group.className = "likert-group";
           group.setAttribute("role", "radiogroup");
@@ -570,21 +602,24 @@ export function createBuilderLayout(config: BuilderConfig): Page {
               state.scoresUI[f.id][o.id] = n;
               touchedCells.add(cellKey(f.id, o.id));
               renderPreview();
+              drawFactorBlocks(container);
             };
             const numberSpan = document.createElement("span");
             numberSpan.textContent = String(n);
             optionLabel.append(radio, numberSpan);
             group.appendChild(optionLabel);
           }
-          td.appendChild(group);
-          tr.appendChild(td);
+
+          cell.append(idLine, descLine, group);
+          row.appendChild(cell);
         });
 
-        tbody.appendChild(tr);
-      });
+        block.append(considerLine, bigFactor, instr1, instr2, row);
+        container.appendChild(block);
 
-      backBtn.style.display = "";
-      nextBtn.textContent = "Finish";
+        // Don't reveal the next factor's block until this one is fully rated.
+        if (!isFactorFullyRated(f)) break;
+      }
     }
 
     function renderCurrentStep() {
