@@ -528,23 +528,25 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         <h2 class="h1" style="font-size:1.2rem">Step 3 – Rate the options on each factor</h2>
         <p style="margin:10px 0 16px">Now, you'll rate each option on each factor, using this scale.</p>
         <div style="display:flex; justify-content:center">
-          <svg viewBox="0 0 700 190" width="100%" style="max-width:640px; overflow:visible">
+          <svg viewBox="0 0 700 210" width="100%" style="max-width:640px; overflow:visible">
             <g font-family="inherit">
               ${[
-                { n: 1, boxX: 90, labelX: 55 },
-                { n: 2, boxX: 220, labelX: 195 },
+                { n: 1, boxX: 282, labelX: 140 },
+                { n: 2, boxX: 316, labelX: 260 },
                 { n: 3, boxX: 350, labelX: 350 },
-                { n: 4, boxX: 480, labelX: 505 },
-                { n: 5, boxX: 610, labelX: 650 },
+                { n: 4, boxX: 384, labelX: 440 },
+                { n: 5, boxX: 418, labelX: 560 },
               ].map(({ n, boxX, labelX }) => `
-                <line x1="${boxX}" y1="65" x2="${labelX}" y2="140" stroke="rgba(232,238,252,0.35)" stroke-width="1.5" />
-                <rect x="${boxX - 25}" y="15" width="50" height="50" rx="8" ry="8"
+                <line x1="${boxX}" y1="45" x2="${labelX}" y2="140" stroke="rgba(232,238,252,0.35)" stroke-width="1.5" />
+                <rect x="${boxX - 15}" y="15" width="30" height="30" rx="6" ry="6"
                   fill="rgba(232,238,252,0.08)" stroke="rgba(232,238,252,0.25)" />
-                <text x="${boxX}" y="46" text-anchor="middle" dominant-baseline="middle"
-                  fill="var(--fg)" font-weight="600" font-size="22">${n}</text>
+                <text x="${boxX}" y="31" text-anchor="middle" dominant-baseline="middle"
+                  fill="var(--fg)" font-weight="600" font-size="16">${n}</text>
                 <text x="${labelX}" y="158" text-anchor="middle"
                   fill="var(--muted)" font-style="italic" font-size="19">${SCORE_LABELS[n - 1]}</text>
               `).join("")}
+              <text x="350" y="195" text-anchor="middle"
+                fill="var(--muted)" font-style="italic" font-size="19">compared to the other options</text>
             </g>
           </svg>
         </div>
@@ -599,6 +601,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         state.options.forEach((o) => {
           const cell = document.createElement("div");
           cell.style.textAlign = "center";
+          cell.style.width = "150px";
+          cell.style.flex = "0 0 150px";
 
           const idLine = document.createElement("div");
           idLine.style.fontSize = "0.75em";
