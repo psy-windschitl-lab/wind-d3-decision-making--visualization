@@ -140,6 +140,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         showWADD,
         showAddControls: false,
         showIdentifierPrefix: true,
+        margin: { top: 92 },
         onScoreEdit: (fid, oid) => {
           touchedCells.add(cellKey(fid, oid));
         },
@@ -343,7 +344,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         input.type = "text";
         input.value = opt.label;
         input.placeholder = "Describe this option";
-        input.style.flex = "0 0 33%";
+        input.style.flex = "0 0 16.5%";
         input.oninput = () => {
           opt.label = input.value;
           renderPreview();
@@ -406,7 +407,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         input.type = "text";
         input.value = fac.label;
         input.placeholder = "Describe this factor";
-        input.style.flex = "0 0 33%";
+        input.style.flex = "0 0 16.5%";
         input.oninput = () => {
           fac.label = input.value;
           renderPreview();
@@ -443,7 +444,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       drawFactorsImportance(container);
 
       backBtn.style.display = "";
-      nextBtn.textContent = "Next";
+      nextBtn.textContent = "Finish";
     }
 
     function drawFactorsImportance(container: HTMLElement) {
@@ -469,7 +470,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         input.type = "text";
         input.value = fac.label;
         input.placeholder = "Describe this factor";
-        input.style.flex = "0 0 33%";
+        input.style.flex = "0 0 16.5%";
         input.oninput = () => {
           fac.label = input.value;
           renderPreview();
@@ -563,7 +564,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       drawFactorBlocks(container);
 
       backBtn.style.display = "";
-      nextBtn.textContent = "Finish";
+      nextBtn.textContent = "Next";
     }
 
     function drawFactorBlocks(container: HTMLElement) {
