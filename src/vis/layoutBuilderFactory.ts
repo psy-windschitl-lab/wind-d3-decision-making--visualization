@@ -96,6 +96,24 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       `
       : "";
 
+    const waddNoteHtml = supportsWADD
+      ? `
+        <div id="waddNote" style="display:none; margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); color:var(--muted); font-size:0.9em; line-height:1.5">
+          <p style="margin:0 0 8px">
+            The WADD (weighted-additive) score is computed from your own inputs. The inputs are
+            put into a formula that is designed to find the best overall option. The option with
+            the highest WADD is the best one, given the inputs.
+          </p>
+          <p style="margin:0">
+            <b>Details:</b> A given WADD score for an option is created by first weighing each of
+            your evaluations about that option by factor importance, then adding up those weighted
+            evaluations. Therefore, factors that you said were more important are given more
+            influence in the WADD scores.
+          </p>
+        </div>
+      `
+      : "";
+
     root.innerHTML = `
       <section class="card">
         <div id="step"></div>
@@ -106,8 +124,9 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       </section>
       <section id="previewCard" class="card" style="margin-top:56px">
         <h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>
-        ${showWADDControl}
         <div id="viz" style="margin-top:8px; background:#0f1730; border-radius:12px; padding:8px;"></div>
+        ${showWADDControl}
+        ${waddNoteHtml}
       </section>
     `;
 
@@ -120,8 +139,10 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       ? root.querySelector<HTMLInputElement>("#showWADD")
       : null;
     const previewCard = root.querySelector<HTMLElement>("#previewCard")!;
+    const waddNote = root.querySelector<HTMLElement>("#waddNote");
 
     let showWADD = waddMode === "always";
+    if (waddNote) waddNote.style.display = showWADD ? "" : "none";
     let finished = config.previewMode === "after-finish" ? false : true;
 
     const BASE_HEIGHT = 600;
@@ -142,6 +163,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         showWADD,
         showAddControls: false,
         showIdentifierPrefix: true,
+        allowImportanceDrag: false,
         margin: { top: 92 },
         onScoreEdit: (fid, oid) => {
           touchedCells.add(cellKey(fid, oid));
@@ -241,6 +263,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     if (supportsWADD && showWADDCheckbox) {
       showWADDCheckbox.addEventListener("change", () => {
         showWADD = !!showWADDCheckbox.checked;
+        if (waddNote) waddNote.style.display = showWADD ? "" : "none";
         if (chart) chart.setShowWADD(showWADD);
         renderPreview(true);
       });
@@ -695,6 +718,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       if (currentStep === 2) go(1);
       else if (currentStep === 3) go(2);
       else if (currentStep === 4) go(3);
+      window.scrollTo(0, 0);
     };
 
     nextBtn.onclick = () => {
