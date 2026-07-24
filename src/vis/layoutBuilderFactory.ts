@@ -167,7 +167,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     const CHART_MARGIN_TOP = 92; // must match the margin.top passed to the chart below
     const CHART_MARGIN_BOTTOM = 32; // matches the chart's default margin.bottom
-    const ROW_HEIGHT_ESTIMATE = 70;
+    const ROW_HEIGHT_ESTIMATE = 120;
     const INITIAL_FACTOR_COUNT = 2; // matches the starting state, before "state" itself exists yet
     const computeChartHeight = (factorCount: number) =>
       Math.max(260, CHART_MARGIN_TOP + CHART_MARGIN_BOTTOM + factorCount * ROW_HEIGHT_ESTIMATE);
