@@ -11,12 +11,14 @@ type BuilderConfig = {
 };
 
 type UIState = {
+  decisionTopic: string;
   options: { id: string; label: string; identifier: string }[];
   factors: { id: string; label: string; uiImportance: number }[];
   scoresUI: Record<string, Record<string, number>>;
 };
 
 const MAX_CHOICES = 5;
+const MAX_FACTORS = 12;
 // A, B, C, ... for choice-option identifiers (n is 1-based).
 const optionLetter = (n: number) => String.fromCharCode(64 + n);
 const FACTOR_IDENTIFIER = "Factor";
@@ -253,6 +255,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     const newOptIdentifier = () => optionLetter(++optIdentifierSeq);
 
     const state: UIState = {
+      decisionTopic: "",
       options: [
         { id: newOptId(), label: "", identifier: newOptIdentifier() },
         { id: newOptId(), label: "", identifier: newOptIdentifier() },
@@ -301,13 +304,28 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep1() {
       stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 1 — Add choice options (max ${MAX_CHOICES})</h2>
+        <h2 class="h1" style="font-size:1.2rem">Step 1--Naming the options</h2>
+        <div style="height:24px"></div>
+        <p style="margin:0 0 4px; font-size:1.8em; line-height:1.3">
+          Enter one word or short phrase that describes what you are deciding about
+          (e.g., "apartments" or "what to do next summer").
+        </p>
+        <p style="margin:0 0 6px"><u>Enter it here</u></p>
+        <input id="decisionTopicInput" type="text" style="width:33%" />
+        <div style="height:24px"></div>
+        <h3 style="margin:0 0 10px; font-size:1.05rem">Name your choice options and add more as needed (max of ${MAX_CHOICES})</h3>
         <div id="choices"></div>
         <div style="margin-top:8px">
-          <button id="addChoiceBtn">Add More Choice Options</button>
+          <button id="addChoiceBtn">Add Option</button>
         </div>
-        <p style="color:var(--muted); margin-top:8px">You can rename choices anytime.</p>
+        <p style="color:var(--muted); margin-top:8px">You can add and rename options anytime</p>
       `;
+
+      const topicInput = stepHost.querySelector<HTMLInputElement>("#decisionTopicInput")!;
+      topicInput.value = state.decisionTopic;
+      topicInput.oninput = () => {
+        state.decisionTopic = topicInput.value;
+      };
 
       const container = stepHost.querySelector<HTMLDivElement>("#choices")!;
       drawChoices(container);
@@ -343,7 +361,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const input = document.createElement("input");
         input.type = "text";
         input.value = opt.label;
-        input.placeholder = "Describe this option";
+        input.placeholder = "Name this option";
         input.style.flex = "0 0 16.5%";
         input.oninput = () => {
           opt.label = input.value;
@@ -368,6 +386,20 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function renderStep2() {
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 2 — Add factors</h2>
+        <p style="margin:10px 0 0; font-size:1.8em; line-height:1.3">
+          Now specify the notable ways in which these options differ. These are the
+          <i><b>factors</b></i> that could matter in your decision.
+        </p>
+        <p style="font-size:0.8em; color:var(--muted); margin:12px 0 0">For apartments, factors might be:</p>
+        <ul style="font-size:0.8em; color:var(--muted); margin:0 0 12px; padding-left:24px">
+          <li>Size</li>
+          <li>Location</li>
+          <li>Safety</li>
+          <li>Lease flexibility</li>
+          <li>Cost</li>
+          <li>Style</li>
+        </ul>
+        <p style="margin:0 0 14px">You can list up to ${MAX_FACTORS} factors, but a smaller number like 5-8 might be easier to deal with.</p>
         <div id="factors"></div>
         <div style="margin-top:8px">
           <button id="addFactorBtn">Add factor</button>
@@ -377,6 +409,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       drawFactorsList(container);
 
       stepHost.querySelector<HTMLButtonElement>("#addFactorBtn")!.onclick = () => {
+        if (state.factors.length >= MAX_FACTORS) return;
         const prev = deepClone(state);
         state.factors.push({ id: newFacId(), label: "", uiImportance: 3 });
         reconcileScores(prev, state);
@@ -406,7 +439,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const input = document.createElement("input");
         input.type = "text";
         input.value = fac.label;
-        input.placeholder = "Describe this factor";
+        input.placeholder = "Name this factor";
         input.style.flex = "0 0 16.5%";
         input.oninput = () => {
           fac.label = input.value;
@@ -433,7 +466,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep2Importance() {
       stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 4 — Rate Factor Importance</h2>
+        <h2 class="h1" style="font-size:1.2rem">Step 4--Rate factor importance</h2>
         <p style="color:var(--muted); margin-top:4px; font-size:1.8em; line-height:1.3">
           Now please rate the importance of each factor. For each factor, think about
           how your options differ and then rate how important these differences are to you.
@@ -469,7 +502,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const input = document.createElement("input");
         input.type = "text";
         input.value = fac.label;
-        input.placeholder = "Describe this factor";
+        input.placeholder = "Name this factor";
         input.style.flex = "0 0 16.5%";
         input.oninput = () => {
           fac.label = input.value;
@@ -532,8 +565,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep4() {
       stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 3 – Rate the options on each factor</h2>
-        <p style="margin:10px 0 16px">Now, you'll rate each option on each factor, using this scale.</p>
+        <h2 class="h1" style="font-size:1.2rem">Step 3--Rate options on each factor</h2>
+        <p style="margin:10px 0 16px; font-size:1.8em; line-height:1.3">Now, you'll rate each option on each factor, using this scale.</p>
         <div style="display:flex; justify-content:center">
           <svg viewBox="0 0 700 210" width="100%" style="max-width:640px; overflow:visible">
             <g font-family="inherit">
@@ -846,6 +879,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const waddScores = computeWaddScores(data.options, data.factors, data.scores);
         return {
           layoutName: root.parentElement?.dataset.layout ?? null,
+          decisionTopic: state.decisionTopic,
           options: data.options.map(o => ({
             id: o.id,
             label: state.options.find(so => so.id === o.id)?.label || o.label,
