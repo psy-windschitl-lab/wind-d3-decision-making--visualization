@@ -79,6 +79,7 @@ export type LayoutConfig = {
   onScoreEdit?: (factorId: string, optionId: string) => void;
   showAddControls?: boolean;
   showIdentifierPrefix?: boolean;
+  allowImportanceDrag?: boolean;
 };
 
 const DEFAULTS: Required<Omit<LayoutConfig, "width" | "height">> = {
@@ -101,6 +102,7 @@ const DEFAULTS: Required<Omit<LayoutConfig, "width" | "height">> = {
   onScoreEdit: undefined,
   showAddControls: true,
   showIdentifierPrefix: false,
+  allowImportanceDrag: true,
 };
 
 type ChartDataInput = {
@@ -139,6 +141,7 @@ export class DecisionLayoutChart {
                  markCellsOnClick: cfg.markCellsOnClick ?? DEFAULTS.markCellsOnClick,
                  showAddControls: cfg.showAddControls ?? DEFAULTS.showAddControls,
                  showIdentifierPrefix: cfg.showIdentifierPrefix ?? DEFAULTS.showIdentifierPrefix,
+                 allowImportanceDrag: cfg.allowImportanceDrag ?? DEFAULTS.allowImportanceDrag,
                  onScoreEdit: cfg.onScoreEdit };
     this.onUpdate = cfg.onUpdate;
     this.onScoreEdit = cfg.onScoreEdit;
@@ -227,20 +230,20 @@ export class DecisionLayoutChart {
   }
 
   render() {
-    const { width: initialWidth, height: initialHeight, margin, colors, padding, onUpdate, showWADD, neutralCellColors, markCellsOnClick, showAddControls, showIdentifierPrefix } = this.cfg;
+    const { width: initialWidth, height: initialHeight, margin, colors, padding, onUpdate, showWADD, neutralCellColors, markCellsOnClick, showAddControls, showIdentifierPrefix, allowImportanceDrag } = this.cfg;
     const ROW_GAP = Math.max(2, padding.row);
     const COL_GAP = Math.max(2, padding.col);
     const MAX_ITEMS = 5;
 
-    const CONTROL_WIDTH = 44;
-    const CONTROL_HEIGHT = 36;
-    const CONTROL_GAP = 8;
+    const CONTROL_WIDTH = showAddControls ? 44 : 0;
+    const CONTROL_HEIGHT = showAddControls ? 36 : 0;
+    const CONTROL_GAP = showAddControls ? 8 : 0;
     const WADD_HEIGHT = showWADD ? 36 : 0;
 
     const innerWidthAllowance = Math.max(80, initialWidth - margin.left - margin.right - CONTROL_WIDTH - CONTROL_GAP);
     const innerHeightAllowance = Math.max(80, initialHeight - margin.top - margin.bottom - CONTROL_HEIGHT - CONTROL_GAP - WADD_HEIGHT);
 
-    const MIN_ROW_PX = 12; // minimum VISIBLE row height (excludes the gap)
+    const MIN_ROW_PX = 70; // minimum VISIBLE row height (excludes the gap)
     const rowWeights = this.factors.map(f => Math.max(0, f.weight));
     const totalRowW = Math.max(1e-6, sum(rowWeights));
     // The gap between rows is fixed overhead, not part of what should be split by weight.
@@ -511,7 +514,7 @@ export class DecisionLayoutChart {
       .style("font-weight", 600)
       .style("fill", colors.headerFg);
     rowEnter.append("foreignObject").attr("class", "row-input");
-    rowEnter.append("rect").attr("class", "resize-handle").style("cursor", "row-resize").attr("fill", "transparent");
+    rowEnter.append("rect").attr("class", "resize-handle").style("cursor", allowImportanceDrag ? "row-resize" : "default").attr("fill", "transparent");
     rowEnter.append("text").attr("class", "remove-btn")
       .style("cursor", "pointer")
       .style("fill", colors.headerFg)
@@ -603,18 +606,19 @@ export class DecisionLayoutChart {
         if (this.onUpdate) this.onUpdate({ factors: [...this.factors] });
       });
 
-    rowAll.select<SVGRectElement>("rect.resize-handle").call(
-      drag<Factor>()
-        .on("start", (event, d) => {
-          const idx = this.factors.findIndex(f => f.id === d.id);
-          this.dragInfo = {
-            type: "row-resize",
-            startY: event.y,
-            startHeight: rowHeights[idx],
-            startWeight: d.weight,
-            idx,
-            updating: false,
-          };
+    if (allowImportanceDrag) {
+      rowAll.select<SVGRectElement>("rect.resize-handle").call(
+        drag<Factor>()
+          .on("start", (event, d) => {
+            const idx = this.factors.findIndex(f => f.id === d.id);
+            this.dragInfo = {
+              type: "row-resize",
+              startY: event.y,
+              startHeight: rowHeights[idx],
+              startWeight: d.weight,
+              idx,
+              updating: false,
+            };
         })
         .on("drag", (event, d) => {
           const delta = event.y - this.dragInfo.startY;
@@ -634,7 +638,8 @@ export class DecisionLayoutChart {
         .on("end", () => {
           if (this.onUpdate) this.onUpdate({ factors: [...this.factors] });
         })
-    );
+      );
+    }
 
     rowAll.select<SVGRectElement>("rect.row-bg").call(
       drag<Factor>()
