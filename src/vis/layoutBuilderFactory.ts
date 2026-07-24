@@ -165,7 +165,22 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     if (waddNote) waddNote.style.display = showWADD ? "" : "none";
     let finished = config.previewMode === "after-finish" ? false : true;
 
-    const BASE_HEIGHT = 600;
+    // Chart height is derived to precisely target a comfortable per-row height, by working
+    // backward through the chart's own internal overhead (top/bottom margin, the optional
+    // WADD row, and the gap between rows) - not an approximation. showAddControls is false
+    // here, so no control-row space needs to be accounted for.
+    const CHART_MARGIN_TOP = 92; // must match margin.top passed to the chart below
+    const CHART_MARGIN_BOTTOM = 32; // matches the chart's default margin.bottom
+    const CHART_ROW_GAP = 8; // matches the chart's default padding.row
+    const TARGET_ROW_HEIGHT = 130;
+    const computeChartHeight = (factorCount: number, waddVisible: boolean) =>
+      Math.max(
+        300,
+        factorCount * (TARGET_ROW_HEIGHT + CHART_ROW_GAP) +
+          CHART_MARGIN_TOP + CHART_MARGIN_BOTTOM +
+          (waddVisible ? 36 : 0)
+      );
+    const INITIAL_FACTOR_COUNT = 2; // matches the starting state, before "state" itself exists yet
     const measureWidth = () => Math.max(360, vizEl.clientWidth || root.clientWidth || 960);
 
     let chart: DecisionLayoutChart | null = null;
@@ -173,18 +188,18 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     const ensureChartSize = () => {
       if (!chart) return;
-      chart.setSize(measureWidth(), BASE_HEIGHT);
+      chart.setSize(measureWidth(), computeChartHeight(state.factors.length, showWADD));
     };
 
     if (config.kind === "chart") {
       chart = new DecisionLayoutChart(vizEl, {
         width: measureWidth(),
-        height: BASE_HEIGHT,
+        height: computeChartHeight(INITIAL_FACTOR_COUNT, showWADD),
         showWADD,
         showAddControls: false,
         showIdentifierPrefix: true,
         allowImportanceDrag: false,
-        margin: { top: 92 },
+        margin: { top: CHART_MARGIN_TOP },
         onScoreEdit: (fid, oid) => {
           touchedCells.add(cellKey(fid, oid));
         },
