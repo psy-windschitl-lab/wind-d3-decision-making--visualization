@@ -235,9 +235,9 @@ export class DecisionLayoutChart {
     const COL_GAP = Math.max(2, padding.col);
     const MAX_ITEMS = 5;
 
-    const CONTROL_WIDTH = 44;
-    const CONTROL_HEIGHT = 36;
-    const CONTROL_GAP = 8;
+    const CONTROL_WIDTH = showAddControls ? 44 : 0;
+    const CONTROL_HEIGHT = showAddControls ? 36 : 0;
+    const CONTROL_GAP = showAddControls ? 8 : 0;
     const WADD_HEIGHT = showWADD ? 36 : 0;
 
     const innerWidthAllowance = Math.max(80, initialWidth - margin.left - margin.right - CONTROL_WIDTH - CONTROL_GAP);
