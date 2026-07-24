@@ -165,12 +165,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     if (waddNote) waddNote.style.display = showWADD ? "" : "none";
     let finished = config.previewMode === "after-finish" ? false : true;
 
-    const CHART_MARGIN_TOP = 92; // must match the margin.top passed to the chart below
-    const CHART_MARGIN_BOTTOM = 32; // matches the chart's default margin.bottom
-    const ROW_HEIGHT_ESTIMATE = 120;
-    const INITIAL_FACTOR_COUNT = 2; // matches the starting state, before "state" itself exists yet
-    const computeChartHeight = (factorCount: number) =>
-      Math.max(260, CHART_MARGIN_TOP + CHART_MARGIN_BOTTOM + factorCount * ROW_HEIGHT_ESTIMATE);
+    const BASE_HEIGHT = 600;
     const measureWidth = () => Math.max(360, vizEl.clientWidth || root.clientWidth || 960);
 
     let chart: DecisionLayoutChart | null = null;
@@ -178,18 +173,18 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     const ensureChartSize = () => {
       if (!chart) return;
-      chart.setSize(measureWidth(), computeChartHeight(state.factors.length));
+      chart.setSize(measureWidth(), BASE_HEIGHT);
     };
 
     if (config.kind === "chart") {
       chart = new DecisionLayoutChart(vizEl, {
         width: measureWidth(),
-        height: computeChartHeight(INITIAL_FACTOR_COUNT),
+        height: BASE_HEIGHT,
         showWADD,
         showAddControls: false,
         showIdentifierPrefix: true,
         allowImportanceDrag: false,
-        margin: { top: CHART_MARGIN_TOP },
+        margin: { top: 92 },
         onScoreEdit: (fid, oid) => {
           touchedCells.add(cellKey(fid, oid));
         },
