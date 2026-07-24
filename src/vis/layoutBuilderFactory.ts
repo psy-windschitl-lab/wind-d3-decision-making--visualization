@@ -306,19 +306,21 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 1--Naming the options</h2>
         <div style="height:24px"></div>
-        <p style="margin:0 0 4px; font-size:1.8em; line-height:1.3">
+        <p style="color:var(--muted); margin:0 0 4px; font-size:1.5em; line-height:1.3">
           Enter one word or short phrase that describes what you are deciding about
-          (e.g., "apartments" or "what to do next summer").
+          <span style="font-size:0.6em">(e.g., "apartments" or "what to do next summer")</span>.
         </p>
-        <p style="margin:0 0 6px"><u>Enter it here</u></p>
-        <input id="decisionTopicInput" type="text" style="width:33%" />
+        <div style="margin-left:28px">
+          <input id="decisionTopicInput" type="text" placeholder="Enter it here" style="width:33%" />
+        </div>
         <div style="height:24px"></div>
-        <h3 style="margin:0 0 10px; font-size:1.05rem">Name your choice options and add more as needed (max of ${MAX_CHOICES})</h3>
+        <div style="height:24px"></div>
+        <p style="color:var(--muted); margin:0 0 10px; font-size:1.5em; line-height:1.3">Add/Name your choice options (max of ${MAX_CHOICES})</p>
         <div id="choices"></div>
         <div style="margin-top:8px">
           <button id="addChoiceBtn">Add Option</button>
         </div>
-        <p style="color:var(--muted); margin-top:8px">You can add and rename options anytime</p>
+        <div style="height:32px"></div>
       `;
 
       const topicInput = stepHost.querySelector<HTMLInputElement>("#decisionTopicInput")!;
@@ -386,24 +388,27 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function renderStep2() {
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 2 — Add factors</h2>
-        <p style="margin:10px 0 0; font-size:1.8em; line-height:1.3">
+        <p style="color:var(--muted); margin:10px 0 0; font-size:1.5em; line-height:1.3">
           Now specify the notable ways in which these options differ. These are the
           <i><b>factors</b></i> that could matter in your decision.
         </p>
-        <p style="font-size:0.8em; color:var(--muted); margin:12px 0 0">For apartments, factors might be:</p>
-        <ul style="font-size:0.8em; color:var(--muted); margin:0 0 12px; padding-left:24px">
-          <li>Size</li>
-          <li>Location</li>
-          <li>Safety</li>
-          <li>Lease flexibility</li>
-          <li>Cost</li>
-          <li>Style</li>
-        </ul>
+        <div style="margin-left:60px">
+          <p style="font-size:0.8em; color:var(--muted); margin:12px 0 0">For apartments, factors might be:</p>
+          <ul style="font-size:0.8em; color:var(--muted); margin:0 0 12px; padding-left:24px">
+            <li>Size</li>
+            <li>Location</li>
+            <li>Safety</li>
+            <li>Lease flexibility</li>
+            <li>Cost</li>
+            <li>Style</li>
+          </ul>
+        </div>
         <p style="margin:0 0 14px">You can list up to ${MAX_FACTORS} factors, but a smaller number like 5-8 might be easier to deal with.</p>
         <div id="factors"></div>
         <div style="margin-top:8px">
           <button id="addFactorBtn">Add factor</button>
         </div>
+        <div style="height:32px"></div>
       `;
       const container = stepHost.querySelector<HTMLDivElement>("#factors")!;
       drawFactorsList(container);
@@ -467,7 +472,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function renderStep2Importance() {
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 4--Rate factor importance</h2>
-        <p style="color:var(--muted); margin-top:4px; font-size:1.8em; line-height:1.3">
+        <p style="color:var(--muted); margin-top:4px; font-size:1.5em; line-height:1.3">
           Now please rate the importance of each factor. For each factor, think about
           how your options differ and then rate how important these differences are to you.
         </p>
@@ -488,38 +493,16 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         block.style.paddingBottom = "10px";
         block.style.borderBottom = "1px solid #1e2a4a";
 
-        const row = document.createElement("div");
-        row.style.display = "flex";
-        row.style.alignItems = "center";
-        row.style.gap = "8px";
-
-        const prefix = document.createElement("span");
-        prefix.textContent = "Factor →";
-        prefix.style.whiteSpace = "nowrap";
-        prefix.style.color = "var(--muted)";
-        prefix.style.fontWeight = "600";
-
-        const input = document.createElement("input");
-        input.type = "text";
-        input.value = fac.label;
-        input.placeholder = "Name this factor";
-        input.style.flex = "0 0 16.5%";
-        input.oninput = () => {
-          fac.label = input.value;
-          renderPreview();
-        };
-
-        const remove = document.createElement("button");
-        remove.textContent = "Remove";
-        remove.onclick = () => {
-          const prev = deepClone(state);
-          state.factors.splice(idx, 1);
-          reconcileScores(prev, state);
-          drawFactorsImportance(container);
-          renderPreview();
-        };
-
-        row.append(prefix, input, remove);
+        const row = document.createElement("p");
+        row.style.margin = "0 0 8px";
+        row.style.color = "var(--muted)";
+        const prefixText = document.createTextNode("You mentioned this factor: ");
+        const nameSpan = document.createElement("span");
+        nameSpan.style.color = "var(--fg)";
+        nameSpan.style.fontWeight = "700";
+        nameSpan.style.fontSize = "1.3em";
+        nameSpan.textContent = fac.label;
+        row.append(prefixText, nameSpan);
 
         const ratingLabel = document.createElement("p");
         ratingLabel.style.color = "var(--muted)";
@@ -566,7 +549,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function renderStep4() {
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 3--Rate options on each factor</h2>
-        <p style="margin:10px 0 16px; font-size:1.8em; line-height:1.3">Now, you'll rate each option on each factor, using this scale.</p>
+        <p style="color:var(--muted); margin:10px 0 16px; font-size:1.5em; line-height:1.3">Now, you'll rate each option on each factor, using this scale.</p>
         <div style="display:flex; justify-content:center">
           <svg viewBox="0 0 700 210" width="100%" style="max-width:640px; overflow:visible">
             <g font-family="inherit">
@@ -620,39 +603,38 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         bigFactor.textContent = f.label;
 
         const instr1 = document.createElement("p");
-        instr1.style.margin = fIdx === 0 ? "0 0 6px" : "0 0 14px";
-        instr1.innerHTML = `Rate each option (relative to the other options) <u>on this factor</u>.`;
+        instr1.style.margin = "0 0 14px";
+        instr1.style.color = "var(--muted)";
+        instr1.innerHTML = `Think about how your options compare to each other <u>on this factor</u>.`;
 
         block.append(considerLine, bigFactor, instr1);
-
-        if (fIdx === 0) {
-          const instr2 = document.createElement("p");
-          instr2.style.margin = "0 0 14px";
-          instr2.style.color = "var(--muted)";
-          instr2.innerHTML = `For example, give a 1 if you thought an option was "very bad" compared to other options <u>on this factor</u>. Give it a 5 if you thought it was "very good."`;
-          block.appendChild(instr2);
-        }
 
         const row = document.createElement("div");
         row.style.display = "flex";
         row.style.gap = "48px";
         row.style.flexWrap = "wrap";
 
-        state.options.forEach((o) => {
+        for (let oIdx = 0; oIdx < state.options.length; oIdx++) {
+          const o = state.options[oIdx];
           const cell = document.createElement("div");
-          cell.style.textAlign = "center";
           cell.style.width = "150px";
           cell.style.flex = "0 0 150px";
 
-          const idLine = document.createElement("div");
-          idLine.style.fontSize = "0.75em";
-          idLine.style.color = "var(--muted)";
-          idLine.style.fontWeight = "600";
-          idLine.textContent = `Option ${o.identifier}`;
-
-          const descLine = document.createElement("div");
-          descLine.style.marginBottom = "6px";
-          descLine.textContent = o.label;
+          const question = document.createElement("p");
+          question.style.fontSize = "0.85em";
+          question.style.color = "var(--muted)";
+          question.style.margin = "0 0 8px";
+          question.style.textAlign = "center";
+          const prefix = document.createTextNode(`How good is Option ${o.identifier} (`);
+          const nameSpan = document.createElement("span");
+          nameSpan.style.color = "var(--fg)";
+          nameSpan.style.fontWeight = "600";
+          nameSpan.textContent = o.label;
+          const midText = document.createTextNode(") ");
+          const underline = document.createElement("u");
+          underline.textContent = "on this factor";
+          const suffix = document.createTextNode("?");
+          question.append(prefix, nameSpan, midText, underline, suffix);
 
           const group = document.createElement("div");
           group.className = "likert-group";
@@ -682,9 +664,12 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             group.appendChild(optionLabel);
           }
 
-          cell.append(idLine, descLine, group);
+          cell.append(question, group);
           row.appendChild(cell);
-        });
+
+          // Don't reveal the next option's question/buttons until this one is answered.
+          if (!touchedCells.has(cellKey(f.id, o.id))) break;
+        }
 
         block.appendChild(row);
         container.appendChild(block);
@@ -719,6 +704,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         go(2);
       } else if (currentStep === 2) {
         if (state.factors.length < 1) { alert("Please add at least 1 factor."); return; }
+        const unnamedFactor = state.factors.find(f => !f.label.trim());
+        if (unnamedFactor) { alert("Please name every factor before continuing."); return; }
         const prev = deepClone(state); reconcileScores(prev, state);
         go(3);
       } else if (currentStep === 3) {
