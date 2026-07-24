@@ -243,20 +243,6 @@ export class DecisionLayoutChart {
     const innerWidthAllowance = Math.max(80, initialWidth - margin.left - margin.right - CONTROL_WIDTH - CONTROL_GAP);
     const innerHeightAllowance = Math.max(80, initialHeight - margin.top - margin.bottom - CONTROL_HEIGHT - CONTROL_GAP - WADD_HEIGHT);
 
-    // TEMPORARY DIAGNOSTIC - remove after we've confirmed where the gap actually is.
-    this.svg.select("rect.debug-content-area").remove();
-    this.svg.append("rect")
-      .attr("class", "debug-content-area")
-      .attr("x", margin.left)
-      .attr("y", margin.top)
-      .attr("width", innerWidthAllowance)
-      .attr("height", innerHeightAllowance)
-      .attr("fill", "rgba(255,0,255,0.15)")
-      .attr("stroke", "magenta")
-      .attr("stroke-width", 2)
-      .attr("stroke-dasharray", "6,4")
-      .style("pointer-events", "none");
-
     const MIN_ROW_PX = 12; // minimum VISIBLE row height (excludes the gap)
     const rowWeights = this.factors.map(f => Math.max(0, f.weight));
     const totalRowW = Math.max(1e-6, sum(rowWeights));
