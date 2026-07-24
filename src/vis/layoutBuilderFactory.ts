@@ -107,7 +107,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           <p style="margin:0">
             <b>Details:</b> A given WADD score for an option is created by first weighing each of
             your evaluations about that option by factor importance, then adding up those weighted
-            evaluations. Therefore, factors that you said were more important are given more
+            evaluations. Therefore, factors that you say are more important are given more
             influence in the WADD scores.
           </p>
         </div>
@@ -123,9 +123,9 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           </p>
           <p style="margin:0">
             <b>Details:</b> In this chart, the amount of green versus brown within a given box
-            shows you how you rated that option on that factor. Separately, a given row (and each
-            box in a row) was made to be taller or shorter depending on how important you said
-            that factor was. Therefore, the overall surface area in green under an option is
+            shows you how you rate that option on that factor. Separately, a given row (and each
+            box in a row) is made to be taller or shorter depending on how important you say
+            that factor is. Therefore, the overall surface area in green under an option is
             essentially the same as how a decision algorithm (called the WADD or weighted-additive
             rule) would compute the overall utility of an option for you.
           </p>
@@ -165,7 +165,11 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     if (waddNote) waddNote.style.display = showWADD ? "" : "none";
     let finished = config.previewMode === "after-finish" ? false : true;
 
-    const BASE_HEIGHT = 600;
+    const CHART_MARGIN_TOP = 92; // must match the margin.top passed to the chart below
+    const CHART_MARGIN_BOTTOM = 32; // matches the chart's default margin.bottom
+    const ROW_HEIGHT_ESTIMATE = 70;
+    const computeChartHeight = () =>
+      Math.max(260, CHART_MARGIN_TOP + CHART_MARGIN_BOTTOM + state.factors.length * ROW_HEIGHT_ESTIMATE);
     const measureWidth = () => Math.max(360, vizEl.clientWidth || root.clientWidth || 960);
 
     let chart: DecisionLayoutChart | null = null;
@@ -173,18 +177,18 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     const ensureChartSize = () => {
       if (!chart) return;
-      chart.setSize(measureWidth(), BASE_HEIGHT);
+      chart.setSize(measureWidth(), computeChartHeight());
     };
 
     if (config.kind === "chart") {
       chart = new DecisionLayoutChart(vizEl, {
         width: measureWidth(),
-        height: BASE_HEIGHT,
+        height: computeChartHeight(),
         showWADD,
         showAddControls: false,
         showIdentifierPrefix: true,
         allowImportanceDrag: false,
-        margin: { top: 92 },
+        margin: { top: CHART_MARGIN_TOP },
         onScoreEdit: (fid, oid) => {
           touchedCells.add(cellKey(fid, oid));
         },
