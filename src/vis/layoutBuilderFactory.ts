@@ -168,8 +168,9 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     const CHART_MARGIN_TOP = 92; // must match the margin.top passed to the chart below
     const CHART_MARGIN_BOTTOM = 32; // matches the chart's default margin.bottom
     const ROW_HEIGHT_ESTIMATE = 70;
-    const computeChartHeight = () =>
-      Math.max(260, CHART_MARGIN_TOP + CHART_MARGIN_BOTTOM + state.factors.length * ROW_HEIGHT_ESTIMATE);
+    const INITIAL_FACTOR_COUNT = 2; // matches the starting state, before "state" itself exists yet
+    const computeChartHeight = (factorCount: number) =>
+      Math.max(260, CHART_MARGIN_TOP + CHART_MARGIN_BOTTOM + factorCount * ROW_HEIGHT_ESTIMATE);
     const measureWidth = () => Math.max(360, vizEl.clientWidth || root.clientWidth || 960);
 
     let chart: DecisionLayoutChart | null = null;
@@ -177,13 +178,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     const ensureChartSize = () => {
       if (!chart) return;
-      chart.setSize(measureWidth(), computeChartHeight());
+      chart.setSize(measureWidth(), computeChartHeight(state.factors.length));
     };
 
     if (config.kind === "chart") {
       chart = new DecisionLayoutChart(vizEl, {
         width: measureWidth(),
-        height: computeChartHeight(),
+        height: computeChartHeight(INITIAL_FACTOR_COUNT),
         showWADD,
         showAddControls: false,
         showIdentifierPrefix: true,
