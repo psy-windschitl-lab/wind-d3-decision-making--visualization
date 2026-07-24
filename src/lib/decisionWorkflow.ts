@@ -12,6 +12,7 @@ type DecisionData = {
   scores: DecisionScores;
   waddScores: Record<string, number>;
   layoutName?: string | null;
+  decisionTopic?: string;
 };
 
 type AttachParams = {
@@ -30,6 +31,7 @@ type StoredDecisionPayload = {
   waddScore: number;
   relativeOptimality: { rank: number; total: number };
   layoutName?: string | null;
+  decisionTopic?: string;
   dataset: {
     options: DecisionOption[];
     factors: DecisionFactor[];
@@ -317,6 +319,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
       waddScore: Number(wadd.toFixed(2)),
       relativeOptimality: { rank: position, total },
       layoutName: decisionData.layoutName ?? null,
+      decisionTopic: decisionData.decisionTopic,
       dataset: {
         options: decisionData.options.map(opt => ({
           id: opt.id,
