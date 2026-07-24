@@ -42,11 +42,29 @@ const ManualLayout: Page = (root, ctx) => {
     </div>
   `;
 
+  const chartNoteHtml = `
+    <div style="margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); color:var(--muted); font-size:0.9em; line-height:1.5">
+      <p style="margin:0 0 8px">
+        Under a given option, the more green you see (versus brown), the better the option
+        seems to be for you, overall.
+      </p>
+      <p style="margin:0">
+        <b>Details:</b> In this chart, the amount of green versus brown within a given box
+        shows you how you rated that option on that factor. Separately, a given row (and each
+        box in a row) was made to be taller or shorter depending on how important you said
+        that factor was. Therefore, the overall surface area in green under an option is
+        essentially the same as how a decision algorithm (called the WADD or weighted-additive
+        rule) would compute the overall utility of an option for you.
+      </p>
+    </div>
+  `;
+
   root.innerHTML = `
     <section class="card">
       <h1 class="h1">Direct Manipulation View</h1>
       <p style="color:var(--muted); margin-top:4px">Use the controls embedded in the chart to rename, resize, and rescore options without the step-by-step wizard.</p>
       <div id="manualViz" style="margin-top:12px; background:#0f1730; border-radius:12px; padding:8px;"></div>
+      ${chartNoteHtml}
       ${waddControl}
       ${waddNoteHtml}
     </section>
