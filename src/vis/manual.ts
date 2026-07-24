@@ -21,22 +21,39 @@ const ManualLayout: Page = (root, ctx) => {
   let showWADD = waddMode === "always";
   const waddControl = waddMode === "checkbox"
     ? `
-      <label style="display:flex; align-items:center; gap:8px; color:var(--fg); margin-top:8px">
+      <label style="display:flex; align-items:center; gap:8px; color:var(--fg); margin-top:12px">
         <input type="checkbox" id="manualShowWADD"${showWADD ? " checked" : ""}> Show WADD Scores
       </label>
     `
     : "";
+  const waddNoteHtml = `
+    <div id="manualWaddNote" style="display:${showWADD ? "" : "none"}; margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); color:var(--muted); font-size:0.9em; line-height:1.5">
+      <p style="margin:0 0 8px">
+        The WADD (weighted-additive) score is computed from your own inputs. The inputs are
+        put into a formula that is designed to find the best overall option. The option with
+        the highest WADD is the best one, given the inputs.
+      </p>
+      <p style="margin:0">
+        <b>Details:</b> A given WADD score for an option is created by first weighing each of
+        your evaluations about that option by factor importance, then adding up those weighted
+        evaluations. Therefore, factors that you said were more important are given more
+        influence in the WADD scores.
+      </p>
+    </div>
+  `;
 
   root.innerHTML = `
     <section class="card">
       <h1 class="h1">Direct Manipulation View</h1>
       <p style="color:var(--muted); margin-top:4px">Use the controls embedded in the chart to rename, resize, and rescore options without the step-by-step wizard.</p>
-      ${waddControl}
       <div id="manualViz" style="margin-top:12px; background:#0f1730; border-radius:12px; padding:8px;"></div>
+      ${waddControl}
+      ${waddNoteHtml}
     </section>
   `;
 
   const vizEl = root.querySelector<HTMLDivElement>("#manualViz")!;
+  const manualWaddNote = root.querySelector<HTMLElement>("#manualWaddNote");
   const decisionHost = document.createElement("div");
   root.appendChild(decisionHost);
 
@@ -116,6 +133,7 @@ const ManualLayout: Page = (root, ctx) => {
   if (showWADDCheckbox) {
     showWADDCheckbox.addEventListener("change", () => {
       showWADD = !!showWADDCheckbox.checked;
+      if (manualWaddNote) manualWaddNote.style.display = showWADD ? "" : "none";
       render();
     });
   }
