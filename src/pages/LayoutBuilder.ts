@@ -1,5 +1,6 @@
 import type { Page } from "../router";
 import { renderVersionChooser } from "./chooser";
+import { resolveIntroVariant, renderIntroPanel } from "./intro";
 
 const DEFAULT_LAYOUT = "vanilla";
 
@@ -44,45 +45,62 @@ const LayoutBuilder: Page = (root, ctx) => {
     return;
   }
 
-  const requestedKey = layoutParam.toLowerCase();
-  const fallbackLayout = registry.get(DEFAULT_LAYOUT) ?? Array.from(registry.values())[0];
+  const renderTool = () => {
+    const requestedKey = layoutParam.toLowerCase();
+    const fallbackLayout = registry.get(DEFAULT_LAYOUT) ?? Array.from(registry.values())[0];
 
-  if (!fallbackLayout) {
-    root.innerHTML = `
-      <section class="card">
-        <h1 class="h1">No Layouts Registered</h1>
-        <p>Add a layout file under <code>src/vis</code> to continue.</p>
-      </section>
-    `;
+    if (!fallbackLayout) {
+      root.innerHTML = `
+        <section class="card">
+          <h1 class="h1">No Layouts Registered</h1>
+          <p>Add a layout file under <code>src/vis</code> to continue.</p>
+        </section>
+      `;
+      return;
+    }
+
+    const resolved = registry.get(requestedKey) ?? fallbackLayout;
+    const resolvedKey = resolved.name.toLowerCase();
+    const matched = registry.has(requestedKey);
+
+    const mount = document.createElement("div");
+    mount.className = "layout-host";
+
+    root.replaceChildren();
+
+    if (!matched) {
+      const available = uniqueNames.map(name => `<code>${name}</code>`).join(", ");
+      const notice = document.createElement("section");
+      notice.className = "card";
+      notice.style.marginBottom = "12px";
+      notice.innerHTML = `
+        <h1 class="h1" style="font-size:1.1rem">Unknown Layout</h1>
+        <p>Request <code>${requestedKey}</code> not found. Showing <code>${resolvedKey}</code>.</p>
+        <p>Available layouts: ${available || "none"}.</p>
+      `;
+      root.appendChild(notice);
+    }
+
+    root.dataset.layout = resolvedKey;
+    root.appendChild(mount);
+
+    return resolved.render(mount, ctx);
+  };
+
+  // Show the intro panel first if a recognized "intro" variant was specified - this is
+  // what a real embedded link (with layout+wadd+intro all set) will show before the tool
+  // itself loads. If intro is missing/unrecognized (e.g. an older link without it), skip
+  // straight to the tool.
+  const introVariant = resolveIntroVariant(ctx.query.get("intro"));
+  if (introVariant) {
+    renderIntroPanel(root, introVariant, () => {
+      root.replaceChildren();
+      renderTool();
+    });
     return;
   }
 
-  const resolved = registry.get(requestedKey) ?? fallbackLayout;
-  const resolvedKey = resolved.name.toLowerCase();
-  const matched = registry.has(requestedKey);
-
-  const mount = document.createElement("div");
-  mount.className = "layout-host";
-
-  root.replaceChildren();
-
-  if (!matched) {
-    const available = uniqueNames.map(name => `<code>${name}</code>`).join(", ");
-    const notice = document.createElement("section");
-    notice.className = "card";
-    notice.style.marginBottom = "12px";
-    notice.innerHTML = `
-      <h1 class="h1" style="font-size:1.1rem">Unknown Layout</h1>
-      <p>Request <code>${requestedKey}</code> not found. Showing <code>${resolvedKey}</code>.</p>
-      <p>Available layouts: ${available || "none"}.</p>
-    `;
-    root.appendChild(notice);
-  }
-
-  root.dataset.layout = resolvedKey;
-  root.appendChild(mount);
-
-  return resolved.render(mount, ctx);
+  return renderTool();
 };
 
 export default LayoutBuilder;
