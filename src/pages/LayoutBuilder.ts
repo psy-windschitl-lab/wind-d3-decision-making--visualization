@@ -93,7 +93,7 @@ const LayoutBuilder: Page = (root, ctx) => {
   // straight to the tool.
   const resolvedIntro = resolveIntroVariant(ctx.query.get("intro"));
   if (resolvedIntro) {
-    renderIntroPanel(root, resolvedIntro.key, resolvedIntro.variant, layoutParam, waddParam, () => {
+    renderIntroPanel(root, resolvedIntro.key, resolvedIntro.variant, () => {
       root.replaceChildren();
       renderTool();
     });
