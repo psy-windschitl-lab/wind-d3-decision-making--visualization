@@ -1,8 +1,8 @@
 import type { Page } from "../router";
 
-// The two variables that can be set directly via URL for a specific version of the app
+// The three variables that can be set directly via URL for a specific version of the app
 // (e.g. for sending a fixed link to a study participant), or chosen from this page when
-// either is left out of the URL.
+// any of them is left out of the URL.
 export const LAYOUT_OPTIONS: Array<{ value: string; label: string; description: string }> = [
   { value: "manual", label: "manual", description: "Build the layout yourself directly — no guided questions." },
   { value: "wizard", label: "wizard", description: "Answer guided questions first; the layout appears once you finish." },
@@ -17,6 +17,11 @@ export const WADD_OPTIONS: Array<{ value: string; label: string; description: st
   { value: "on", label: "on", description: "Scores are always visible from the start — no control needed." },
 ];
 
+export const INTRO_OPTIONS: Array<{ value: string; label: string; description: string }> = [
+  { value: "Intro1", label: "Intro1", description: "For the GP (General Public) versions." },
+  { value: "Intro2", label: "Intro2", description: "For a research version." },
+];
+
 export function renderVersionChooser(root: HTMLElement, ctx: Parameters<Page>[1]) {
   const section = document.createElement("section");
   section.className = "card";
@@ -24,8 +29,13 @@ export function renderVersionChooser(root: HTMLElement, ctx: Parameters<Page>[1]
   section.innerHTML = `
     <h1 class="h1">Choose a Version</h1>
     <p style="color:var(--muted); margin-top:4px">
-      Pick a value for each variable below, or use a link that already includes both
-      (e.g. <code>?layout=wizard&wadd=off</code>) to skip this page entirely.
+      Pick a value for each variable below, or use a link that already includes all three
+      (e.g. <code>?layout=wizard&amp;wadd=off&amp;intro=Intro1</code>) to skip this page entirely
+      and go straight to the intro panel for that version.
+    </p>
+    <p style="color:var(--muted); margin-top:4px">
+      To skip the intro panel too and go straight into the tool itself, leave <code>intro</code>
+      out of the link entirely (e.g. <code>?layout=wizard&amp;wadd=off</code>).
     </p>
     <p style="color:var(--muted); font-size:0.9em">Best used on a desktop or laptop browser.</p>
     <div style="margin-top:16px">
@@ -38,19 +48,26 @@ export function renderVersionChooser(root: HTMLElement, ctx: Parameters<Page>[1]
       <p style="color:var(--muted); margin:2px 0 8px">Determines whether and when scores can be revealed.</p>
       <div id="waddOptions" style="display:flex; flex-direction:column; gap:8px"></div>
     </div>
+    <div style="margin-top:16px">
+      <h2 class="h1" style="font-size:1.05rem">intro</h2>
+      <p style="color:var(--muted); margin:2px 0 8px">Determines which introduction/instructions page is shown.</p>
+      <div id="introOptions" style="display:flex; flex-direction:column; gap:8px"></div>
+    </div>
     <button id="startBtn" style="margin-top:16px" disabled>Start</button>
   `;
   root.appendChild(section);
 
   const layoutHost = section.querySelector<HTMLDivElement>("#layoutOptions")!;
   const waddHost = section.querySelector<HTMLDivElement>("#waddOptions")!;
+  const introHost = section.querySelector<HTMLDivElement>("#introOptions")!;
   const startBtn = section.querySelector<HTMLButtonElement>("#startBtn")!;
 
   let selectedLayout: string | null = null;
   let selectedWadd: string | null = null;
+  let selectedIntro: string | null = null;
 
   const updateStart = () => {
-    startBtn.disabled = !(selectedLayout && selectedWadd);
+    startBtn.disabled = !(selectedLayout && selectedWadd && selectedIntro);
   };
 
   const renderOptionGroup = (
@@ -83,9 +100,13 @@ export function renderVersionChooser(root: HTMLElement, ctx: Parameters<Page>[1]
     selectedWadd = value;
     updateStart();
   });
+  renderOptionGroup(introHost, INTRO_OPTIONS, "introChoice", (value) => {
+    selectedIntro = value;
+    updateStart();
+  });
 
   startBtn.onclick = () => {
-    if (!selectedLayout || !selectedWadd) return;
-    ctx.navigate(`/builder?layout=${selectedLayout}&wadd=${selectedWadd}`);
+    if (!selectedLayout || !selectedWadd || !selectedIntro) return;
+    ctx.navigate(`/builder?layout=${selectedLayout}&wadd=${selectedWadd}&intro=${selectedIntro}`);
   };
 }
