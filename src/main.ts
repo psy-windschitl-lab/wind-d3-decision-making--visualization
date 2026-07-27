@@ -1,4 +1,5 @@
 import { Router, type Route } from "./router";
+import { renderNav } from "./nav";
 import Home from "./pages/Home";
 import LayoutBuilder from "./pages/LayoutBuilder";
 import About from "./pages/About";
@@ -12,5 +13,7 @@ const routes: Route[] = [
 
 new Router({
   routes,
-  outlet: document.getElementById("app")!
+  outlet: document.getElementById("app")!,
+  navOutlet: document.getElementById("nav")!,
+  renderNav,
 });
