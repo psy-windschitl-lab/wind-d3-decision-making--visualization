@@ -8,6 +8,10 @@ type PreviewKind = "chart" | "table";
 type BuilderConfig = {
   previewMode: "live" | "after-finish";
   kind: PreviewKind;
+  // When true, the live preview chart is shown but not interactive, the chart-note and
+  // WADD control are hidden, and the preview heading reads "PREVIEW of your layout" -
+  // all until the person clicks Finish. Only meaningful when previewMode is "live".
+  restrictPreviewUntilFinish?: boolean;
 };
 
 type UIState = {
@@ -142,10 +146,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         </div>
       </section>
       <section id="previewCard" class="card" style="margin-top:56px">
-        <h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>
+        <div id="previewHeading">
+          ${config.restrictPreviewUntilFinish
+            ? `<h2 class="h1" style="font-size:2.2rem; margin-bottom:0">PREVIEW</h2><p style="color:var(--muted); margin-top:4px">of your layout</p>`
+            : `<h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>`}
+        </div>
         <div id="viz" style="margin-top:8px; background:#0f1730; border-radius:12px; padding:8px;"></div>
-        ${chartNoteHtml}
-        ${showWADDControl}
+        <div id="chartNoteWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${chartNoteHtml}</div>
+        <div id="waddControlWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${showWADDControl}</div>
         ${waddNoteHtml}
       </section>
     `;
@@ -160,10 +168,17 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       : null;
     const previewCard = root.querySelector<HTMLElement>("#previewCard")!;
     const waddNote = root.querySelector<HTMLElement>("#waddNote");
+    const previewHeading = root.querySelector<HTMLElement>("#previewHeading")!;
+    const chartNoteWrap = root.querySelector<HTMLElement>("#chartNoteWrap")!;
+    const waddControlWrap = root.querySelector<HTMLElement>("#waddControlWrap")!;
 
     let showWADD = waddMode === "always";
     if (waddNote) waddNote.style.display = showWADD ? "" : "none";
     let finished = config.previewMode === "after-finish" ? false : true;
+    // Separate from "finished" above, which is already true from the start for any
+    // "live" preview mode (including GP1's) and so can't be used to mean "clicked
+    // Finish." This one specifically tracks that click, for restrictPreviewUntilFinish.
+    let reachedFinish = false;
 
     // Chart height is derived to precisely target a comfortable per-row height, by working
     // backward through the chart's own internal overhead (top/bottom margin, the optional
@@ -199,6 +214,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         showAddControls: false,
         showIdentifierPrefix: true,
         allowImportanceDrag: false,
+        readOnly: !!config.restrictPreviewUntilFinish && !reachedFinish,
         margin: { top: CHART_MARGIN_TOP },
         onScoreEdit: (fid, oid) => {
           touchedCells.add(cellKey(fid, oid));
@@ -784,8 +800,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           return;
         }
         finished = true;
+        reachedFinish = true;
         if (config.previewMode === "after-finish") {
           previewCard.style.display = "";
+        }
+        if (config.restrictPreviewUntilFinish) {
+          chartNoteWrap.style.display = "";
+          waddControlWrap.style.display = "";
+          previewHeading.innerHTML = `<h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>`;
         }
         decisionHost.style.display = "";
         renderPreview(true);
@@ -801,6 +823,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       if (config.kind === "chart") {
         ensureChartSize();
         chart?.setShowWADD(showWADD);
+        chart?.setReadOnly(!!config.restrictPreviewUntilFinish && !reachedFinish);
         chart?.data({ ...data, modified: touchedCells }).render();
       } else {
         renderTable(data, showWADD);
@@ -916,7 +939,9 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     }
 
     const decisionHost = document.createElement("div");
-    if (!finished) decisionHost.style.display = "none";
+    if (config.restrictPreviewUntilFinish ? !reachedFinish : !finished) {
+      decisionHost.style.display = "none";
+    }
     root.appendChild(decisionHost);
     attachDecisionWorkflow({
       host: decisionHost,
