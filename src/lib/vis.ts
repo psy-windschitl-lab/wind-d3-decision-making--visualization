@@ -80,6 +80,7 @@ export type LayoutConfig = {
   showAddControls?: boolean;
   showIdentifierPrefix?: boolean;
   allowImportanceDrag?: boolean;
+  readOnly?: boolean;
 };
 
 const DEFAULTS: Required<Omit<LayoutConfig, "width" | "height">> = {
@@ -103,6 +104,7 @@ const DEFAULTS: Required<Omit<LayoutConfig, "width" | "height">> = {
   showAddControls: true,
   showIdentifierPrefix: false,
   allowImportanceDrag: true,
+  readOnly: false,
 };
 
 type ChartDataInput = {
@@ -142,6 +144,7 @@ export class DecisionLayoutChart {
                  showAddControls: cfg.showAddControls ?? DEFAULTS.showAddControls,
                  showIdentifierPrefix: cfg.showIdentifierPrefix ?? DEFAULTS.showIdentifierPrefix,
                  allowImportanceDrag: cfg.allowImportanceDrag ?? DEFAULTS.allowImportanceDrag,
+                 readOnly: cfg.readOnly ?? DEFAULTS.readOnly,
                  onScoreEdit: cfg.onScoreEdit };
     this.onUpdate = cfg.onUpdate;
     this.onScoreEdit = cfg.onScoreEdit;
@@ -166,6 +169,11 @@ export class DecisionLayoutChart {
 
   setShowWADD(show: boolean) {
     this.cfg.showWADD = show;
+    return this;
+  }
+
+  setReadOnly(readOnly: boolean) {
+    this.cfg.readOnly = readOnly;
     return this;
   }
 
@@ -230,7 +238,7 @@ export class DecisionLayoutChart {
   }
 
   render() {
-    const { width: initialWidth, height: initialHeight, margin, colors, padding, onUpdate, showWADD, neutralCellColors, markCellsOnClick, showAddControls, showIdentifierPrefix, allowImportanceDrag } = this.cfg;
+    const { width: initialWidth, height: initialHeight, margin, colors, padding, onUpdate, showWADD, neutralCellColors, markCellsOnClick, showAddControls, showIdentifierPrefix, allowImportanceDrag, readOnly } = this.cfg;
     const ROW_GAP = Math.max(2, padding.row);
     const COL_GAP = Math.max(2, padding.col);
     const MAX_ITEMS = 5;
@@ -339,6 +347,7 @@ export class DecisionLayoutChart {
     const headerText = colAll.select<SVGTextElement>("text.header-text")
       .style("pointer-events", "auto")
       .on("dblclick", (event, d) => {
+        if (readOnly) return;
         if (this.editingId) return;
         this.editingId = d.id;
         this.render();
@@ -415,9 +424,10 @@ export class DecisionLayoutChart {
         if (this.onUpdate) this.onUpdate({ options: [...this.options] });
       });
 
-    colAll.select<SVGRectElement>("rect.header-bg").style("cursor", "move").call(
+    colAll.select<SVGRectElement>("rect.header-bg").style("cursor", readOnly ? "default" : "move").call(
       drag<Option>()
         .on("start", (event, d) => {
+          if (readOnly) return;
           const node = event.sourceEvent.target.parentNode as SVGGElement;
           const g = select(node);
           g.raise();
@@ -438,6 +448,7 @@ export class DecisionLayoutChart {
             .raise();
         })
         .on("drag", (event) => {
+          if (readOnly) return;
           // Reuse the exact element captured at drag start — see the matching comment
           // in the row-reorder handler for why re-detecting it from the pointer each
           // frame is unsafe once siblings start sliding underneath the cursor.
@@ -491,6 +502,7 @@ export class DecisionLayoutChart {
           }
         })
         .on("end", () => {
+          if (readOnly) return;
           const finalIdx = this.dragInfo.newIdx;
           const moved = this.options.splice(this.dragInfo.idx, 1)[0];
           this.options.splice(finalIdx, 0, moved);
@@ -529,12 +541,13 @@ export class DecisionLayoutChart {
       .attr("y", ROW_GAP / 2)
       .attr("height", (_, i) => rowHeights[i] - ROW_GAP)
       .attr("fill", colors.headerBg)
-      .style("cursor", "move");
+      .style("cursor", readOnly ? "default" : "move");
     const rowText = rowAll.select<SVGTextElement>("text.row-text")
       .attr("x", margin.left / 2 - 10)
       .attr("y", (_, i) => rowHeights[i] / 2)
       .style("pointer-events", "auto")
       .on("dblclick", (event, d) => {
+        if (readOnly) return;
         if (this.editingId) return;
         this.editingId = d.id;
         this.render();
@@ -644,6 +657,7 @@ export class DecisionLayoutChart {
     rowAll.select<SVGRectElement>("rect.row-bg").call(
       drag<Factor>()
         .on("start", (event, d) => {
+          if (readOnly) return;
           const node = event.sourceEvent.target.parentNode as SVGGElement;
           const g = select(node);
           g.raise();
@@ -664,6 +678,7 @@ export class DecisionLayoutChart {
             .raise();
         })
         .on("drag", (event) => {
+          if (readOnly) return;
           // Reuse the exact element captured at drag start, rather than asking "what's
           // under the pointer right now" — once sibling rows start sliding underneath the
           // cursor (from the preview-swap animation below), that would sometimes resolve to
@@ -722,6 +737,7 @@ export class DecisionLayoutChart {
           }
         })
         .on("end", () => {
+          if (readOnly) return;
           const finalIdx = this.dragInfo.newIdx;
           const moved = this.factors.splice(this.dragInfo.idx, 1)[0];
           this.factors.splice(finalIdx, 0, moved);
@@ -802,6 +818,7 @@ export class DecisionLayoutChart {
         .style("opacity", isModified ? 0 : 0.35);
 
       g.select<SVGRectElement>("rect.score-handle")
+        .style("cursor", readOnly ? "default" : "col-resize")
         .transition(t)
         .attr("x", x0 + wPos - 2.5)
         .attr("y", y + 1)
@@ -812,6 +829,7 @@ export class DecisionLayoutChart {
     all.select<SVGRectElement>("rect.score-handle").call(
       drag<any>()
         .on("start", (event, d) => {
+          if (readOnly) return;
           const g = select(event.sourceEvent.target.parentNode as SVGGElement);
           const w = colWidths[d.cidx] - COL_GAP;
           const fracPos = (d.score + 1) / 2;
@@ -826,6 +844,7 @@ export class DecisionLayoutChart {
           };
         })
         .on("drag", (event) => {
+          if (readOnly) return;
           const delta = event.x - this.dragInfo.startX;
           let newWPos = Math.max(0, Math.min(this.dragInfo.w, this.dragInfo.startWPos + delta));
           this.dragInfo.g.select("rect.cell-pos").attr("width", newWPos - 1);
@@ -848,6 +867,7 @@ export class DecisionLayoutChart {
           }
         })
         .on("end", () => {
+          if (readOnly) return;
           const newWPos = Number(this.dragInfo.g.select("rect.cell-pos").attr("width")) + 1;
           const newScore = 2 * (newWPos / this.dragInfo.w) - 1;
           this.updateScore(this.dragInfo.d.fid, this.dragInfo.d.oid, newScore);
