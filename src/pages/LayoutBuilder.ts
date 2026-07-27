@@ -91,9 +91,9 @@ const LayoutBuilder: Page = (root, ctx) => {
   // what a real embedded link (with layout+wadd+intro all set) will show before the tool
   // itself loads. If intro is missing/unrecognized (e.g. an older link without it), skip
   // straight to the tool.
-  const introVariant = resolveIntroVariant(ctx.query.get("intro"));
-  if (introVariant) {
-    renderIntroPanel(root, introVariant, () => {
+  const resolvedIntro = resolveIntroVariant(ctx.query.get("intro"));
+  if (resolvedIntro) {
+    renderIntroPanel(root, resolvedIntro.key, resolvedIntro.variant, layoutParam, waddParam, () => {
       root.replaceChildren();
       renderTool();
     });
