@@ -35,11 +35,20 @@ function compile(path: string) {
 export class Router {
   private routes: { cfg: Route; re: RegExp; keys: string[] }[] = [];
   private outlet: HTMLElement;
+  private navOutlet?: HTMLElement;
+  private renderNav?: (container: HTMLElement, ctx: PageCtx) => void;
   private base = (document.querySelector("base")?.getAttribute("href") || "/")
                   .replace(/\/+$/,"");  // e.g., "/repo"
 
-  constructor(opts: { routes: Route[]; outlet: HTMLElement }) {
+  constructor(opts: {
+    routes: Route[];
+    outlet: HTMLElement;
+    navOutlet?: HTMLElement;
+    renderNav?: (container: HTMLElement, ctx: PageCtx) => void;
+  }) {
     this.outlet = opts.outlet;
+    this.navOutlet = opts.navOutlet;
+    this.renderNav = opts.renderNav;
     this.routes = opts.routes.map(cfg => ({ cfg, ...compile(cfg.path) }));
     window.addEventListener("popstate", () => this.handle(new URL(location.href)));
     document.addEventListener("click", (e) => {
@@ -67,13 +76,18 @@ export class Router {
       const m = path.match(r.re);
       if (!m) continue;
       const params = Object.fromEntries(r.keys.map((k, i) => [k, decodeURIComponent(m[i + 1])] ));
-      document.title = r.cfg.title ?? "Decision Layout";
-      this.outlet.replaceChildren(); // clear
-      await r.cfg.render(this.outlet, {
+      const ctx: PageCtx = {
         params,
         query: new URLSearchParams(url.searchParams),
         navigate: this.navigate,
-      });
+      };
+      document.title = r.cfg.title ?? "Decision Layout";
+      if (this.navOutlet && this.renderNav) {
+        this.navOutlet.replaceChildren();
+        this.renderNav(this.navOutlet, ctx);
+      }
+      this.outlet.replaceChildren(); // clear
+      await r.cfg.render(this.outlet, ctx);
       window.scrollTo({ top: 0 });
       return;
     }
