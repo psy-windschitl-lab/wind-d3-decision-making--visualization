@@ -66,7 +66,9 @@ export class Router {
     const current = `${location.pathname}${location.search}${location.hash}`;
     if (target === current) return;
     history.pushState({}, "", target);
-    this.handle(url);
+    // Deferred so this can never run re-entrantly while another handle() call (e.g. a
+    // page redirecting mid-render, like Home.ts does) is still in progress.
+    queueMicrotask(() => this.handle(url));
   };
 
   private async handle(input: string | URL) {
