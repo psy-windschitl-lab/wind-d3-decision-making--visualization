@@ -2,6 +2,7 @@ import type { Page } from "../router";
 import { DecisionLayoutChart, type Factor, type Option, type Scores } from "../lib/vis";
 import { computeWaddScores } from "../lib/wadd";
 import { attachDecisionWorkflow } from "../lib/decisionWorkflow";
+import { renderPostDecisionLanding } from "../pages/postDecision";
 
 export const meta = { name: "manual" };
 
@@ -201,7 +202,7 @@ const ManualLayout: Page = (root, ctx) => {
   bottomNextBtn.style.background = "var(--accent)";
   bottomNextBtn.style.color = "white";
   bottomNextBtn.onclick = () => {
-    bottomNextWrap.style.display = "none";
+    renderPostDecisionLanding(root, false);
   };
   bottomNextWrap.appendChild(bottomNextBtn);
   root.appendChild(bottomNextWrap);
@@ -213,6 +214,9 @@ const ManualLayout: Page = (root, ctx) => {
     onRestart: () => location.reload(),
     onReturnToLayout: () => {
       bottomNextWrap.style.display = "";
+    },
+    onNext: () => {
+      renderPostDecisionLanding(root, false);
     },
   });
 
