@@ -100,12 +100,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       `
       : "";
 
+    const waddMainSentence = config.kind === "table"
+      ? "The option with the highest WADD score is the best one overall for you."
+      : "The option with the highest WADD score (which is also the one with the most green) is the best one overall for you.";
     const waddNoteHtml = supportsWADD
       ? `
         <div id="waddNote" style="display:none; margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
           <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
-            The option with the highest WADD score (which is also the one with the most green)
-            is the best one overall for you.
+            ${waddMainSentence}
           </p>
           <p style="margin:0; font-size:0.75em; color:var(--muted)">
             The WADD score for an option is created by first weighing each of your evaluations
@@ -146,7 +148,9 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         <div id="previewHeading">
           ${config.restrictPreviewUntilFinish
             ? `<h2 class="h1" style="font-size:2.2rem; margin-bottom:0">PREVIEW</h2><p style="color:var(--muted); margin-top:4px">of your layout</p>`
-            : `<h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>`}
+            : config.previewMode === "live"
+              ? `<h2 class="h1" style="font-size:1.2rem">Your Layout (So Far)</h2>`
+              : `<h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>`}
         </div>
         <div id="viz" style="margin-top:8px; background:#0f1730; border-radius:12px; padding:8px;"></div>
         <div id="chartNoteWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${chartNoteHtml}</div>
@@ -815,6 +819,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         decisionHost.style.display = "";
         renderPreview(true);
       }
+      window.scrollTo(0, 0);
     };
 
     function renderWaddScoresBlock(data: ReturnType<typeof toChartData>) {
@@ -826,7 +831,10 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           <div style="font-size:1.4em; font-weight:700; color:var(--fg)">${Math.round(waddScores[o.id])}</div>
         </div>
       `).join("");
-      waddScoresWrap.innerHTML = `<div style="display:flex; gap:24px; flex-wrap:wrap">${itemsHtml}</div>`;
+      const labelHtml = waddMode === "always"
+        ? `<h3 class="h1" style="font-size:1rem; margin:0 0 8px">WADD Scores</h3>`
+        : "";
+      waddScoresWrap.innerHTML = `${labelHtml}<div style="display:flex; gap:24px; flex-wrap:wrap">${itemsHtml}</div>`;
     }
 
     function renderPreview(force = false) {
@@ -958,6 +966,25 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       decisionHost.style.display = "none";
     }
     root.appendChild(decisionHost);
+
+    const bottomNextWrap = document.createElement("div");
+    bottomNextWrap.style.display = "none";
+    bottomNextWrap.style.textAlign = "center";
+    bottomNextWrap.style.margin = "32px 0";
+    const bottomNextBtn = document.createElement("button");
+    bottomNextBtn.textContent = "Next";
+    bottomNextBtn.style.fontSize = "1.4em";
+    bottomNextBtn.style.padding = "14px 40px";
+    bottomNextBtn.style.borderRadius = ".6rem";
+    bottomNextBtn.style.border = "none";
+    bottomNextBtn.style.background = "var(--accent)";
+    bottomNextBtn.style.color = "white";
+    bottomNextBtn.onclick = () => {
+      bottomNextWrap.style.display = "none";
+    };
+    bottomNextWrap.appendChild(bottomNextBtn);
+    root.appendChild(bottomNextWrap);
+
     attachDecisionWorkflow({
       host: decisionHost,
       getDecisionData: () => {
@@ -983,6 +1010,9 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       },
       showWaddOnButtons: waddMode === "always",
       onRestart: () => location.reload(),
+      onReturnToLayout: () => {
+        bottomNextWrap.style.display = "";
+      },
     });
 
     go(1);
