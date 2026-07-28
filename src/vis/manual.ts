@@ -27,34 +27,31 @@ const ManualLayout: Page = (root, ctx) => {
     `
     : "";
   const waddNoteHtml = `
-    <div id="manualWaddNote" style="display:${showWADD ? "" : "none"}; margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); color:var(--muted); font-size:0.9em; line-height:1.5">
-      <p style="margin:0 0 8px">
-        The WADD (weighted-additive) score is computed from your own inputs. The inputs are
-        put into a formula that is designed to find the best overall option. The option with
-        the highest WADD is the best one, given the inputs.
+    <div id="manualWaddNote" style="display:${showWADD ? "" : "none"}; margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
+      <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
+        The option with the highest WADD score (which is also the one with the most green)
+        is the best one overall for you.
       </p>
-      <p style="margin:0">
-        <b>Details:</b> A given WADD score for an option is created by first weighing each of
-        your evaluations about that option by factor importance, then adding up those weighted
-        evaluations. Therefore, factors that you say are more important are given more
-        influence in the WADD scores.
+      <p style="margin:0; font-size:0.75em; color:var(--muted)">
+        The WADD score for an option is created by first weighing each of your evaluations
+        about that option by factor importance, then adding up those weighted evaluations.
+        Therefore, factors that you say are more important are given more influence in the
+        WADD scores.
       </p>
     </div>
   `;
 
   const chartNoteHtml = `
-    <div style="margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); color:var(--muted); font-size:0.9em; line-height:1.5">
-      <p style="margin:0 0 8px">
-        Under a given option, the more green you see (versus brown), the better the option
-        seems to be for you, overall.
+    <div style="margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
+      <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
+        The option with the most green under it is the best option overall, based on an
+        optimized decision rule applied to your inputs.
       </p>
-      <p style="margin:0">
-        <b>Details:</b> In this chart, the amount of green versus brown within a given box
-        shows you how you rate that option on that factor. Separately, a given row (and each
-        box in a row) is made to be taller or shorter depending on how important you say
-        that factor is. Therefore, the overall surface area in green under an option is
-        essentially the same as how a decision algorithm (called the WADD or weighted-additive
-        rule) would compute the overall utility of an option for you.
+      <p style="margin:0; font-size:0.75em; color:var(--muted)">
+        Your ratings determine the amount of green within a given box. Your evaluations of
+        a factor&rsquo;s importance determine how tall the row for that factor is. The overall
+        surface area in green under an option reflects how a decision algorithm called the
+        WADD (weighted-additive) rule would score the overall utility of the option for you.
       </p>
     </div>
   `;
@@ -66,12 +63,14 @@ const ManualLayout: Page = (root, ctx) => {
       <div id="manualViz" style="margin-top:12px; background:#0f1730; border-radius:12px; padding:8px;"></div>
       ${chartNoteHtml}
       ${waddControl}
+      <div id="waddScoresWrap" style="display:${showWADD ? "" : "none"}; margin-top:12px"></div>
       ${waddNoteHtml}
     </section>
   `;
 
   const vizEl = root.querySelector<HTMLDivElement>("#manualViz")!;
   const manualWaddNote = root.querySelector<HTMLElement>("#manualWaddNote");
+  const waddScoresWrap = root.querySelector<HTMLElement>("#waddScoresWrap")!;
   const decisionHost = document.createElement("div");
   root.appendChild(decisionHost);
 
@@ -97,7 +96,6 @@ const ManualLayout: Page = (root, ctx) => {
   const chart = new DecisionLayoutChart(vizEl, {
     width: 1100,
     height: 600,
-    showWADD,
     markCellsOnClick: true,
     onUpdate: (updates) => {
       if (updates.options) {
@@ -139,8 +137,23 @@ const ManualLayout: Page = (root, ctx) => {
     state.scores = scores;
   }
 
+  function renderWaddScoresBlock() {
+    const waddScores = computeWaddScores(
+      state.options.map(o => ({ id: o.id, weight: o.weight })),
+      state.factors.map(f => ({ id: f.id, weight: f.weight })),
+      state.scores
+    );
+    const itemsHtml = state.options.map(o => `
+      <div style="text-align:center">
+        <div style="font-size:0.75em; color:var(--muted); font-weight:600">${o.label}</div>
+        <div style="font-size:1.4em; font-weight:700; color:var(--fg)">${Math.round(waddScores[o.id])}</div>
+      </div>
+    `).join("");
+    waddScoresWrap.innerHTML = `<div style="display:flex; gap:24px; flex-wrap:wrap">${itemsHtml}</div>`;
+  }
+
   function render() {
-    chart.setShowWADD(showWADD);
+    renderWaddScoresBlock();
     chart.data({
       options: state.options.map(o => ({ ...o })),
       factors: state.factors.map(f => ({ ...f })),
@@ -152,6 +165,7 @@ const ManualLayout: Page = (root, ctx) => {
     showWADDCheckbox.addEventListener("change", () => {
       showWADD = !!showWADDCheckbox.checked;
       if (manualWaddNote) manualWaddNote.style.display = showWADD ? "" : "none";
+      waddScoresWrap.style.display = showWADD ? "" : "none";
       render();
     });
   }
