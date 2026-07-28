@@ -149,7 +149,10 @@ const ManualLayout: Page = (root, ctx) => {
         <div style="font-size:1.4em; font-weight:700; color:var(--fg)">${Math.round(waddScores[o.id])}</div>
       </div>
     `).join("");
-    waddScoresWrap.innerHTML = `<div style="display:flex; gap:24px; flex-wrap:wrap">${itemsHtml}</div>`;
+    const labelHtml = waddMode === "always"
+      ? `<h3 class="h1" style="font-size:1rem; margin:0 0 8px">WADD Scores</h3>`
+      : "";
+    waddScoresWrap.innerHTML = `${labelHtml}<div style="display:flex; gap:24px; flex-wrap:wrap">${itemsHtml}</div>`;
   }
 
   function render() {
@@ -185,11 +188,32 @@ const ManualLayout: Page = (root, ctx) => {
     };
   };
 
+  const bottomNextWrap = document.createElement("div");
+  bottomNextWrap.style.display = "none";
+  bottomNextWrap.style.textAlign = "center";
+  bottomNextWrap.style.margin = "32px 0";
+  const bottomNextBtn = document.createElement("button");
+  bottomNextBtn.textContent = "Next";
+  bottomNextBtn.style.fontSize = "1.4em";
+  bottomNextBtn.style.padding = "14px 40px";
+  bottomNextBtn.style.borderRadius = ".6rem";
+  bottomNextBtn.style.border = "none";
+  bottomNextBtn.style.background = "var(--accent)";
+  bottomNextBtn.style.color = "white";
+  bottomNextBtn.onclick = () => {
+    bottomNextWrap.style.display = "none";
+  };
+  bottomNextWrap.appendChild(bottomNextBtn);
+  root.appendChild(bottomNextWrap);
+
   attachDecisionWorkflow({
     host: decisionHost,
     getDecisionData,
     showWaddOnButtons: waddMode === "always",
     onRestart: () => location.reload(),
+    onReturnToLayout: () => {
+      bottomNextWrap.style.display = "";
+    },
   });
 
   reconcileScores();
