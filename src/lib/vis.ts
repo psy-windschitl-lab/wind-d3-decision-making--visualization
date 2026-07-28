@@ -408,7 +408,10 @@ export class DecisionLayoutChart {
       .attr("text-anchor", "middle")
       .style("font-size", "16px")
       .style("font-weight", "bold")
+      .style("display", readOnly ? "none" : null)
       .on("click", (event, d) => {
+        if (readOnly) return;
+        if (!window.confirm(`Remove "${d.label || "this option"}"? This can't be undone.`)) return;
         this.options = this.options.filter(o => o.id !== d.id);
         const newScores: Scores = {};
         Object.keys(this.scores).forEach(fid => {
@@ -608,7 +611,10 @@ export class DecisionLayoutChart {
       .attr("text-anchor", "middle")
       .style("font-size", "16px")
       .style("font-weight", "bold")
+      .style("display", readOnly ? "none" : null)
       .on("click", (event, d) => {
+        if (readOnly) return;
+        if (!window.confirm(`Remove "${d.label || "this factor"}"? This can't be undone.`)) return;
         this.factors = this.factors.filter(f => f.id !== d.id);
         const newScores: Scores = {};
         this.factors.forEach(f => {
@@ -795,7 +801,7 @@ export class DecisionLayoutChart {
         .transition(t)
         .attr("x", x0 + 1)
         .attr("y", y + 1)
-        .attr("width", Math.max(0, wPos - 1))
+        .attr("width", Math.max(0, wPos - 2))
         .attr("height", Math.max(0, h - 2))
         .attr("fill", posFill);
 
@@ -847,7 +853,7 @@ export class DecisionLayoutChart {
           if (readOnly) return;
           const delta = event.x - this.dragInfo.startX;
           let newWPos = Math.max(0, Math.min(this.dragInfo.w, this.dragInfo.startWPos + delta));
-          this.dragInfo.g.select("rect.cell-pos").attr("width", newWPos - 1);
+          this.dragInfo.g.select("rect.cell-pos").attr("width", Math.max(0, newWPos - 2));
           this.dragInfo.g
             .select("rect.cell-neg")
             .attr("x", COL_GAP / 2 + newWPos + 1)
@@ -870,8 +876,9 @@ export class DecisionLayoutChart {
           if (readOnly) return;
           const newWPos = Number(this.dragInfo.g.select("rect.cell-pos").attr("width")) + 1;
           const newScore = 2 * (newWPos / this.dragInfo.w) - 1;
-          this.updateScore(this.dragInfo.d.fid, this.dragInfo.d.oid, newScore);
-          if (this.onUpdate) this.onUpdate({ scores: { ...this.scores } });
+          const { fid, oid } = this.dragInfo.d;
+          this.updateScore(fid, oid, newScore);
+          if (this.onUpdate) this.onUpdate({ scores: { [fid]: { [oid]: this.scores[fid][oid] } } });
           this.render();
         })
     );
