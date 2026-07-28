@@ -20,6 +20,7 @@ type AttachParams = {
   getDecisionData: () => DecisionData;
   showWaddOnButtons: boolean;
   onRestart?: () => void;
+  onReturnToLayout?: () => void;
 };
 
 const STORAGE_KEY = "decision-layout-selection";
@@ -118,7 +119,7 @@ function storeDecision(payload: StoredDecisionPayload) {
   }
 }
 
-export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButtons, onRestart }: AttachParams) {
+export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButtons, onRestart, onReturnToLayout }: AttachParams) {
   if (!host) return;
 
   const actionWrap = document.createElement("div");
@@ -145,8 +146,8 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
   trigger.addEventListener("click", () => {
     if (decisionLocked) return;
     const confirmModal = openModal({
-      title: "Are you sure?",
-      body: "Review your weights and scores before locking in a decision.",
+      title: "Are you sure you are ready to select your decision?",
+      body: "",
       actions: [
         {
           label: "No, go back",
@@ -244,7 +245,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
       if (!optionId) return;
       const label = labelLookup.get(optionId);
       if (!label) return;
-      btn.textContent = formatOptionLabel(label, latest.waddScores[optionId]);
+      btn.textContent = label;
     });
   }
 
@@ -260,8 +261,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
       btn.type = "button";
       btn.className = "decision-option-button";
       btn.dataset.optionId = opt.id;
-      const wadd = decisionData.waddScores[opt.id];
-      btn.textContent = formatOptionLabel(displayLabel(opt), wadd);
+      btn.textContent = displayLabel(opt);
       btn.addEventListener("click", () => {
         const optionId = btn.dataset.optionId || opt.id;
         if (activeOptionsClose) {
@@ -339,10 +339,18 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
 
     const resultModal = openModal({
       title: "Decision recorded",
-      body: `Saved "${displayLabel(chosen)}" with a WADD score of ${wadd.toFixed(2)}. You can keep exploring the layout, but the decision is locked. To proceed, hit the "Next" button in the bottom right.`,
+      body: `You selected ${displayLabel(chosen)}. The decision is now locked. You can keep exploring the layout/table if you'd like, but otherwise hit the "Next" button.`,
       actions: [
         {
-          label: "Got it",
+          label: "Return",
+          variant: "secondary",
+          onClick: () => {
+            resultModal.close();
+            onReturnToLayout?.();
+          },
+        },
+        {
+          label: "Next",
           onClick: () => resultModal.close(),
         },
       ],
