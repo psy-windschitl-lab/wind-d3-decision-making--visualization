@@ -102,17 +102,16 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     const waddNoteHtml = supportsWADD
       ? `
-        <div id="waddNote" style="display:none; margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); color:var(--muted); font-size:0.9em; line-height:1.5">
-          <p style="margin:0 0 8px">
-            The WADD (weighted-additive) score is computed from your own inputs. The inputs are
-            put into a formula that is designed to find the best overall option. The option with
-            the highest WADD is the best one, given the inputs.
+        <div id="waddNote" style="display:none; margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
+          <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
+            The option with the highest WADD score (which is also the one with the most green)
+            is the best one overall for you.
           </p>
-          <p style="margin:0">
-            <b>Details:</b> A given WADD score for an option is created by first weighing each of
-            your evaluations about that option by factor importance, then adding up those weighted
-            evaluations. Therefore, factors that you say are more important are given more
-            influence in the WADD scores.
+          <p style="margin:0; font-size:0.75em; color:var(--muted)">
+            The WADD score for an option is created by first weighing each of your evaluations
+            about that option by factor importance, then adding up those weighted evaluations.
+            Therefore, factors that you say are more important are given more influence in the
+            WADD scores.
           </p>
         </div>
       `
@@ -120,18 +119,16 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     const chartNoteHtml = config.kind === "chart"
       ? `
-        <div style="margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); color:var(--muted); font-size:0.9em; line-height:1.5">
-          <p style="margin:0 0 8px">
-            Under a given option, the more green you see (versus brown), the better the option
-            seems to be for you, overall.
+        <div style="margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
+          <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
+            The option with the most green under it is the best option overall, based on an
+            optimized decision rule applied to your inputs.
           </p>
-          <p style="margin:0">
-            <b>Details:</b> In this chart, the amount of green versus brown within a given box
-            shows you how you rate that option on that factor. Separately, a given row (and each
-            box in a row) is made to be taller or shorter depending on how important you say
-            that factor is. Therefore, the overall surface area in green under an option is
-            essentially the same as how a decision algorithm (called the WADD or weighted-additive
-            rule) would compute the overall utility of an option for you.
+          <p style="margin:0; font-size:0.75em; color:var(--muted)">
+            Your ratings determine the amount of green within a given box. Your evaluations of
+            a factor&rsquo;s importance determine how tall the row for that factor is. The overall
+            surface area in green under an option reflects how a decision algorithm called the
+            WADD (weighted-additive) rule would score the overall utility of the option for you.
           </p>
         </div>
       `
@@ -154,6 +151,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         <div id="viz" style="margin-top:8px; background:#0f1730; border-radius:12px; padding:8px;"></div>
         <div id="chartNoteWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${chartNoteHtml}</div>
         <div id="waddControlWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${showWADDControl}</div>
+        <div id="waddScoresWrap" style="display:none; margin-top:12px"></div>
         ${waddNoteHtml}
       </section>
     `;
@@ -168,17 +166,23 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       : null;
     const previewCard = root.querySelector<HTMLElement>("#previewCard")!;
     const waddNote = root.querySelector<HTMLElement>("#waddNote");
+    const waddScoresWrap = root.querySelector<HTMLElement>("#waddScoresWrap")!;
     const previewHeading = root.querySelector<HTMLElement>("#previewHeading")!;
     const chartNoteWrap = root.querySelector<HTMLElement>("#chartNoteWrap")!;
     const waddControlWrap = root.querySelector<HTMLElement>("#waddControlWrap")!;
 
     let showWADD = waddMode === "always";
-    if (waddNote) waddNote.style.display = showWADD ? "" : "none";
+    const updateWaddVisibility = () => {
+      const visible = showWADD && (!config.restrictPreviewUntilFinish || reachedFinish);
+      if (waddNote) waddNote.style.display = visible ? "" : "none";
+      waddScoresWrap.style.display = visible ? "" : "none";
+    };
     let finished = config.previewMode === "after-finish" ? false : true;
     // Separate from "finished" above, which is already true from the start for any
     // "live" preview mode (including GP1's) and so can't be used to mean "clicked
     // Finish." This one specifically tracks that click, for restrictPreviewUntilFinish.
     let reachedFinish = false;
+    updateWaddVisibility();
 
     // Chart height is derived to precisely target a comfortable per-row height, by working
     // backward through the chart's own internal overhead (top/bottom margin, the optional
@@ -203,14 +207,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     const ensureChartSize = () => {
       if (!chart) return;
-      chart.setSize(measureWidth(), computeChartHeight(state.factors.length, showWADD));
+      chart.setSize(measureWidth(), computeChartHeight(state.factors.length, false));
     };
 
     if (config.kind === "chart") {
       chart = new DecisionLayoutChart(vizEl, {
         width: measureWidth(),
-        height: computeChartHeight(INITIAL_FACTOR_COUNT, showWADD),
-        showWADD,
+        height: computeChartHeight(INITIAL_FACTOR_COUNT, false),
         showAddControls: false,
         showIdentifierPrefix: true,
         allowImportanceDrag: false,
@@ -314,8 +317,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     if (supportsWADD && showWADDCheckbox) {
       showWADDCheckbox.addEventListener("change", () => {
         showWADD = !!showWADDCheckbox.checked;
-        if (waddNote) waddNote.style.display = showWADD ? "" : "none";
-        if (chart) chart.setShowWADD(showWADD);
+        updateWaddVisibility();
         renderPreview(true);
       });
     }
@@ -807,12 +809,25 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         if (config.restrictPreviewUntilFinish) {
           chartNoteWrap.style.display = "";
           waddControlWrap.style.display = "";
-          previewHeading.innerHTML = `<h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>`;
+          previewHeading.innerHTML = `<h2 class="h1" style="font-size:2.2rem">Your Layout</h2>`;
         }
+        updateWaddVisibility();
         decisionHost.style.display = "";
         renderPreview(true);
       }
     };
+
+    function renderWaddScoresBlock(data: ReturnType<typeof toChartData>) {
+      if (!supportsWADD) return;
+      const waddScores = computeWaddScores(data.options, data.factors, data.scores);
+      const itemsHtml = data.options.map(o => `
+        <div style="text-align:center">
+          <div style="font-size:0.75em; color:var(--muted); font-weight:600">Option ${o.identifier}</div>
+          <div style="font-size:1.4em; font-weight:700; color:var(--fg)">${Math.round(waddScores[o.id])}</div>
+        </div>
+      `).join("");
+      waddScoresWrap.innerHTML = `<div style="display:flex; gap:24px; flex-wrap:wrap">${itemsHtml}</div>`;
+    }
 
     function renderPreview(force = false) {
       if (config.previewMode === "after-finish" && !finished && !force) return;
@@ -820,13 +835,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         ? config.previewMode === "live" || !finished
         : false;
       const data = toChartData(state, neutralFallback);
+      renderWaddScoresBlock(data);
       if (config.kind === "chart") {
         ensureChartSize();
-        chart?.setShowWADD(showWADD);
         chart?.setReadOnly(!!config.restrictPreviewUntilFinish && !reachedFinish);
         chart?.data({ ...data, modified: touchedCells }).render();
       } else {
-        renderTable(data, showWADD);
+        renderTable(data, false);
       }
     }
 
