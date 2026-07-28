@@ -21,6 +21,7 @@ type AttachParams = {
   showWaddOnButtons: boolean;
   onRestart?: () => void;
   onReturnToLayout?: () => void;
+  onNext?: () => void;
 };
 
 const STORAGE_KEY = "decision-layout-selection";
@@ -119,7 +120,7 @@ function storeDecision(payload: StoredDecisionPayload) {
   }
 }
 
-export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButtons, onRestart, onReturnToLayout }: AttachParams) {
+export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButtons, onRestart, onReturnToLayout, onNext }: AttachParams) {
   if (!host) return;
 
   const actionWrap = document.createElement("div");
@@ -351,7 +352,10 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
         },
         {
           label: "Next",
-          onClick: () => resultModal.close(),
+          onClick: () => {
+            resultModal.close();
+            onNext?.();
+          },
         },
       ],
     });
