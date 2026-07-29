@@ -346,6 +346,7 @@ export class DecisionLayoutChart {
       .attr("fill", colors.headerBg);
     const headerText = colAll.select<SVGTextElement>("text.header-text")
       .style("pointer-events", "auto")
+      .style("font-size", "1.1em")
       .on("dblclick", (event, d) => {
         if (readOnly) return;
         if (this.editingId) return;
@@ -549,6 +550,7 @@ export class DecisionLayoutChart {
       .attr("x", margin.left / 2 - 10)
       .attr("y", (_, i) => rowHeights[i] / 2)
       .style("pointer-events", "auto")
+      .style("font-size", "1.1em")
       .on("dblclick", (event, d) => {
         if (readOnly) return;
         if (this.editingId) return;
