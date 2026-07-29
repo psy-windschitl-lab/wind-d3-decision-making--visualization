@@ -40,9 +40,7 @@ export const INTRO_VARIANTS: Record<string, IntroVariant> = {
 
 export const GP_MORE_INFO_TITLE = "More Introductory Information";
 export const GP_MORE_INFO_BODY = `
-  <p>Placeholder for additional GP introductory information. Add whatever extra detail
-  GP participants specifically should see here (e.g. more on how the Layout works, or
-  what to expect at each stage) before they start.</p>
+  <p>This is a placeholder for additional introductory information. We&rsquo;ll add it later.</p>
 `;
 
 export function resolveIntroVariant(introParam: string | null) {
