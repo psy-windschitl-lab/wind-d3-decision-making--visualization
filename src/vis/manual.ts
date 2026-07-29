@@ -45,9 +45,10 @@ const ManualLayout: Page = (root, ctx) => {
   const chartNoteHtml = `
     <div style="margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
       <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
-        This visualizes your inputs. The more favorably you rated an option on a factor,
-        the more green (vs. brown) appears. And, the tallness of a row is based on how
-        important you said that factor was.
+        This visualizes your inputs. The more favorably you feel about an option&rsquo;s
+        standing on a given factor, the more green (vs. brown) you should have it. And,
+        the tallness of a row should reflect how important you think that factor is for
+        your decision.
       </p>
       <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
         Now you can see how good an option is overall by looking at how much green
@@ -63,8 +64,13 @@ const ManualLayout: Page = (root, ctx) => {
 
   root.innerHTML = `
     <section class="card">
-      <h1 class="h1">Direct Manipulation View</h1>
-      <p style="color:var(--muted); margin-top:4px">Use the controls embedded in the chart to rename, resize, and rescore options without the step-by-step wizard.</p>
+      <h1 class="h1">Create Your Decision Layout</h1>
+      <ul style="font-size:1.05em; margin:10px 0 0; padding-left:24px; line-height:1.6">
+        <li>1--Double-click &ldquo;Option&rdquo; or &ldquo;Factor&rdquo; to rename them (optional)</li>
+        <li>2--Click + to add more options or factors (optional)</li>
+        <li>3--Click and drag from the middle of each gray box to start coloring the box to reflect your evaluation. For example, coloring it ALL green means you think that option is &ldquo;very good&rdquo; relative to others on that particular feature.</li>
+        <li>4--Click and drag from the space right below a factor to adjust how important you think this factor should be for your decision.</li>
+      </ul>
       <div id="manualViz" style="margin-top:12px; background:#0f1730; border-radius:12px; padding:8px;"></div>
       ${chartNoteHtml}
       ${waddControl}
@@ -206,7 +212,7 @@ const ManualLayout: Page = (root, ctx) => {
   bottomNextBtn.style.background = "var(--accent)";
   bottomNextBtn.style.color = "white";
   bottomNextBtn.onclick = () => {
-    renderPostDecisionLanding(root, false);
+    renderPostDecisionLanding(root);
   };
   bottomNextWrap.appendChild(bottomNextBtn);
   root.appendChild(bottomNextWrap);
@@ -220,7 +226,7 @@ const ManualLayout: Page = (root, ctx) => {
       bottomNextWrap.style.display = "";
     },
     onNext: () => {
-      renderPostDecisionLanding(root, false);
+      renderPostDecisionLanding(root);
     },
   });
 
