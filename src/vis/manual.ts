@@ -45,14 +45,18 @@ const ManualLayout: Page = (root, ctx) => {
   const chartNoteHtml = `
     <div style="margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
       <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
-        The option with the most green under it is the best option overall, based on an
-        optimized decision rule applied to your inputs.
+        This visualizes <u>your</u> inputs. The more favorably you rated an option on a
+        factor, the more green (vs. brown) appears. The rows for factors that you said
+        were more important are now larger.
+      </p>
+      <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
+        Now you can see how good an option is overall by looking at how much green
+        appears in its column. This is all based on an optimized decision rule.
       </p>
       <p style="margin:0; font-size:0.75em; color:var(--muted)">
-        Your ratings determine the amount of green within a given box. Your evaluations of
-        a factor&rsquo;s importance determine how tall the row for that factor is. The overall
-        surface area in green under an option reflects how a decision algorithm called the
-        WADD (weighted-additive) rule would score the overall utility of the option for you.
+        The overall surface area in green under an option reflects how a decision
+        algorithm called the WADD (weighted-additive) rule would score the overall
+        utility of the option for you.
       </p>
     </div>
   `;
