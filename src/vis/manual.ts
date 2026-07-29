@@ -33,7 +33,7 @@ const ManualLayout: Page = (root, ctx) => {
         The option with the highest WADD score (which is also the one with the most green)
         is the best one overall for you.
       </p>
-      <p style="margin:0; font-size:0.75em; color:var(--muted)">
+      <p style="margin:0; font-size:0.9em; color:var(--muted)">
         The WADD score for an option is created by first weighing each of your evaluations
         about that option by factor importance, then adding up those weighted evaluations.
         Therefore, factors that you say are more important are given more influence in the
@@ -45,18 +45,18 @@ const ManualLayout: Page = (root, ctx) => {
   const chartNoteHtml = `
     <div style="margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
       <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
-        This visualizes <u>your</u> inputs. The more favorably you rated an option on a
-        factor, the more green (vs. brown) appears. The rows for factors that you said
-        were more important are now larger.
+        This visualizes your inputs. The more favorably you rated an option on a factor,
+        the more green (vs. brown) appears. And, the tallness of a row is based on how
+        important you said that factor was.
       </p>
       <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
         Now you can see how good an option is overall by looking at how much green
-        appears in its column. This is all based on an optimized decision rule.
+        appears in the column below it.
       </p>
-      <p style="margin:0; font-size:0.75em; color:var(--muted)">
-        The overall surface area in green under an option reflects how a decision
-        algorithm called the WADD (weighted-additive) rule would score the overall
-        utility of the option for you.
+      <p style="margin:0; font-size:0.9em; color:var(--muted)">
+        This is all based on an optimized decision rule. The overall surface area in
+        green under an option reflects how a decision algorithm called the WADD
+        (weighted-additive) rule would score the overall utility of the option for you.
       </p>
     </div>
   `;
@@ -150,7 +150,7 @@ const ManualLayout: Page = (root, ctx) => {
     );
     const itemsHtml = state.options.map(o => `
       <div style="text-align:center">
-        <div style="font-size:0.75em; color:var(--muted); font-weight:600">${o.label}</div>
+        <div style="font-size:0.9em; color:var(--muted); font-weight:600">${o.label}</div>
         <div style="font-size:1.4em; font-weight:700; color:var(--fg)">${Math.round(waddScores[o.id])}</div>
       </div>
     `).join("");
