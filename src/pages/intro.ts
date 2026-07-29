@@ -7,11 +7,16 @@ type IntroVariant = {
 
 export const INTRO_VARIANTS: Record<string, IntroVariant> = {
   intro1: {
-    title: "Welcome to the Decide Wisely App! (Desktop/Laptop Version)",
+    title: `Welcome to <i>Decide Wisely</i>`,
     body: `
-      <p>This app doesn't make a decision for you, but it helps you understand and make your own decision (wisely!).</p>
-      <p>You start by identifying your options and answering simple questions, while the app builds an organized visual representation called a Layout. The Layout helps spot which option is best using either your own intuition or an optimized decision-making rule.</p>
-      <p>You can also change your inputs to see the implications for your decision making.</p>
+      <div style="font-size:1.15em">
+        <p>This app doesn't make a decision for you, but it helps you understand and make your own decision -- wisely!</p>
+        <p>You start by identifying your options and answering simple questions, while the app builds an organized visual representation called a <i>Layout</i>. The <i>Layout</i> helps spot which option is best using either your own intuition or an optimized decision-making rule.</p>
+        <p>You can also change your inputs to see the implications for your decision making.</p>
+        <p>&nbsp;</p>
+        <p>This app is for desktops/laptops, not cell phones.</p>
+        <p>&nbsp;</p>
+      </div>
     `,
   },
   intro2: {
@@ -62,7 +67,7 @@ export function renderIntroPanel(
       ${variant.body}
       <div style="display:flex; gap:.5rem; margin-top:16px; flex-wrap:wrap">
         <button id="introContinueBtn" style="padding:.5rem .8rem; border-radius:.5rem; border:none; background:var(--accent); color:white">
-          ${introKey === "intro1" ? "Get Started on a Decision now" : "Continue"}
+          ${introKey === "intro1" ? "Get Started on a Decision Now" : "Continue"}
         </button>
         ${introKey === "intro1" ? `<button id="introMoreBtn">See More Introductory Information</button>` : ""}
       </div>
@@ -82,7 +87,7 @@ export function renderIntroPanel(
       ${GP_MORE_INFO_BODY}
       <div style="display:flex; gap:.5rem; margin-top:16px; flex-wrap:wrap">
         <button id="introBackBtn">Back</button>
-        <button id="introContinueBtn2" style="padding:.5rem .8rem; border-radius:.5rem; border:none; background:var(--accent); color:white">Get Started on a Decision now</button>
+        <button id="introContinueBtn2" style="padding:.5rem .8rem; border-radius:.5rem; border:none; background:var(--accent); color:white">Get Started on a Decision Now</button>
       </div>
     `;
     root.appendChild(section);
