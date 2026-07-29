@@ -53,6 +53,7 @@ type ModalParams = {
   body?: string;
   bodyNode?: HTMLElement;
   actions?: ModalAction[];
+  alignTop?: boolean;
 };
 
 type ModalRef = {
@@ -61,9 +62,9 @@ type ModalRef = {
   dialog: HTMLDivElement;
 };
 
-function openModal({ title, body, bodyNode, actions = [] }: ModalParams): ModalRef {
+function openModal({ title, body, bodyNode, actions = [], alignTop }: ModalParams): ModalRef {
   const overlay = document.createElement("div");
-  overlay.className = "modal-overlay";
+  overlay.className = alignTop ? "modal-overlay modal-overlay--top" : "modal-overlay";
 
   const dialog = document.createElement("div");
   dialog.className = "modal";
@@ -152,7 +153,6 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
       actions: [
         {
           label: "No, go back",
-          variant: "secondary",
           onClick: () => confirmModal.close(),
         },
         {
@@ -276,6 +276,7 @@ export function attachDecisionWorkflow({ host, getDecisionData, showWaddOnButton
     const selectionModal = openModal({
       title: "Choose an option",
       bodyNode: optionGrid,
+      alignTop: true,
       actions: [
         {
           label: "View layout",
