@@ -33,6 +33,13 @@ export const INTRO_VARIANTS: Record<string, IntroVariant> = {
   },
 };
 
+export const GP_MORE_INFO_TITLE = "More Introductory Information";
+export const GP_MORE_INFO_BODY = `
+  <p>Placeholder for additional GP introductory information. Add whatever extra detail
+  GP participants specifically should see here (e.g. more on how the Layout works, or
+  what to expect at each stage) before they start.</p>
+`;
+
 export function resolveIntroVariant(introParam: string | null) {
   const key = (introParam || "").toLowerCase();
   return key in INTRO_VARIANTS ? { key, variant: INTRO_VARIANTS[key] } : null;
@@ -71,10 +78,8 @@ export function renderIntroPanel(
     const section = document.createElement("section");
     section.className = "card";
     section.innerHTML = `
-      <h1 class="h1">More Introductory Information</h1>
-      <p>Placeholder for additional GP introductory information. Add whatever extra detail
-      GP participants specifically should see here (e.g. more on how the Layout works, or
-      what to expect at each stage) before they start.</p>
+      <h1 class="h1">${GP_MORE_INFO_TITLE}</h1>
+      ${GP_MORE_INFO_BODY}
       <div style="display:flex; gap:.5rem; margin-top:16px; flex-wrap:wrap">
         <button id="introBackBtn">Back</button>
         <button id="introContinueBtn2" style="padding:.5rem .8rem; border-radius:.5rem; border:none; background:var(--accent); color:white">Get Started on a Decision now</button>
