@@ -84,8 +84,6 @@ const signedToLikert = (s: number) => Math.round(3 + s * 2);
 
 export function createBuilderLayout(config: BuilderConfig): Page {
   return (root, ctx) => {
-    const layoutKey = (root.parentElement?.dataset.layout ?? "").toLowerCase();
-    const isGP1 = layoutKey === "gp1";
     const supportsWADD = config.kind === "chart" || config.kind === "table";
     const waddSetting = ctx.query.get("wadd")?.toLowerCase();
     const waddMode = waddSetting === "on"
@@ -153,11 +151,9 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       </section>
       <section id="previewCard" class="card" style="margin-top:56px">
         <div id="previewHeading">
-          ${isGP1
+          ${config.restrictPreviewUntilFinish
             ? `<h2 class="h1" style="font-size:2.2rem; margin-bottom:0">PREVIEW</h2><p style="color:var(--muted); margin-top:4px">of your layout</p>`
-            : config.previewMode === "live"
-              ? `<h2 class="h1" style="font-size:2.2rem">Your Layout (So Far)</h2>`
-              : `<h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>`}
+            : `<h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>`}
         </div>
         <div id="viz" style="margin-top:8px; background:#0f1730; border-radius:12px; padding:8px;"></div>
         <div id="chartNoteWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${chartNoteHtml}</div>
@@ -987,7 +983,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     bottomNextBtn.style.background = "var(--accent)";
     bottomNextBtn.style.color = "white";
     bottomNextBtn.onclick = () => {
-      renderPostDecisionLanding(root, isGP1);
+      renderPostDecisionLanding(root);
     };
     bottomNextWrap.appendChild(bottomNextBtn);
     root.appendChild(bottomNextWrap);
@@ -1021,7 +1017,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         bottomNextWrap.style.display = "";
       },
       onNext: () => {
-        renderPostDecisionLanding(root, isGP1);
+        renderPostDecisionLanding(root);
       },
     });
 
