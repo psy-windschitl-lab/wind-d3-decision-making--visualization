@@ -66,7 +66,7 @@ export function renderVersionChooser(root: HTMLElement, ctx: Parameters<Page>[1]
         As a more detailed example, if you would otherwise be using the above URL, you'd
         add the embeds like this:
       </p>
-      <p style="font-family:monospace; word-break:break-all"><span style="color:white">https://forpwplaying1.d3cre5pk9b538u.amplifyapp.com/</span><span style="color:#ffd60a">?layout=wizard&amp;wadd=off&amp;intro=Intro1</span></p>
+      <p style="font-family:monospace; word-break:break-all"><span style="color:white">https://forpwplaying1.d3cre5pk9b538u.amplifyapp.com/</span><span style="color:#ffd60a">?layout=GP1&amp;wadd=checkbox&amp;intro=Intro1</span></p>
       <p>Here is what you'd need to embed to get what you want:</p>
       <h3 class="h1" style="font-size:1rem; margin:16px 0 4px">layout</h3>
       <ul style="margin:0 0 12px; padding-left:24px; color:var(--muted)">
