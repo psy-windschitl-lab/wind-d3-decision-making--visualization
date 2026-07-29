@@ -361,7 +361,7 @@ export class DecisionLayoutChart {
         const availWidth = Math.max(20, colWidths[i] - COL_GAP - 24);
         textEl.append("tspan")
           .attr("x", xPos)
-          .attr("dy", "-1.3em")
+          .attr("dy", "-1.0em")
           .style("font-size", "0.92em")
           .style("font-weight", 600)
           .text(d.identifier ? `Option ${d.identifier}` : optionIdentifier(i));
