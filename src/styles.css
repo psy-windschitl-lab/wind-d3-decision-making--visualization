@@ -60,6 +60,7 @@ rect[fill="transparent"]:hover { fill: var(--accent); opacity: 0.2; }
 .decision-btn { background: var(--accent); color: var(--fg); border: none; border-radius: 8px; padding: 0.55rem 1.1rem; font-weight: 600; cursor: pointer; box-shadow: 0 6px 16px rgba(47,100,183,0.25); transition: transform 0.15s ease, box-shadow 0.15s ease; }
 .decision-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 22px rgba(47,100,183,0.35); }
 .modal-overlay { position: fixed; inset: 0; background: rgba(4, 8, 20, 0.75); display: flex; align-items: center; justify-content: center; z-index: 999; backdrop-filter: blur(2px); transition: background 0.25s ease, backdrop-filter 0.25s ease; }
+.modal-overlay--top { align-items: flex-start; padding-top: 6vh; }
 .modal-overlay--clear { background: rgba(4, 8, 20, 0); backdrop-filter: blur(0px); }
 .modal { background: var(--card); border: 1px solid #1e2a4a; border-radius: 12px; padding: 1.25rem; width: min(420px, 92vw); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45); transform-origin: center; }
 .modal h4 { margin: 0 0 .5rem; font-size: 1.1rem; color: var(--fg); }
