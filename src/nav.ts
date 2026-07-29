@@ -1,5 +1,5 @@
 import type { PageCtx } from "./router";
-import { resolveIntroVariant } from "./pages/intro";
+import { resolveIntroVariant, GP_MORE_INFO_TITLE, GP_MORE_INFO_BODY } from "./pages/intro";
 
 // Rebuilt on every navigation (see router.ts), so it has access to the current URL
 // (ctx.query / ctx.params) and can vary its content by whatever's currently in the URL.
@@ -21,7 +21,7 @@ export function renderNav(container: HTMLElement, ctx: PageCtx) {
   container.innerHTML = `
     <a href="/${carryQuery}" id="navIntro">Introduction</a>
     <a href="/builder" id="navNewDecision">New Decision</a>
-    ${isResearch ? "" : `<a href="/about${carryQuery}" data-link>About</a>`}
+    ${isResearch ? "" : `<a href="/about${carryQuery}" id="navAbout">About</a>`}
   `;
 
   // "New Decision": always asks for confirmation, and - if the current URL already has
@@ -40,11 +40,11 @@ export function renderNav(container: HTMLElement, ctx: PageCtx) {
     ctx.navigate(target);
   });
 
-  // "Introduction": if the person is currently mid-decision (on /builder), show the
-  // intro content as an overlay on top of the current page instead of navigating away,
-  // so their in-progress work isn't lost - with a way to return to it. Otherwise, this
-  // navigates to Home, carrying the current variables forward so Home can go straight
-  // back into the tool rather than showing the chooser.
+  // "Introduction" and "About" both behave as overlays on top of the current page while
+  // the person is mid-decision (on /builder), instead of a real page navigation - a real
+  // navigation would unmount the builder entirely and silently lose all their in-progress
+  // answers, since nothing is persisted outside that page's own in-memory state. Once
+  // they're not mid-decision, these are just normal links.
   const introLink = container.querySelector<HTMLAnchorElement>("#navIntro")!;
   introLink.addEventListener("click", (e) => {
     e.preventDefault();
@@ -54,37 +54,86 @@ export function renderNav(container: HTMLElement, ctx: PageCtx) {
       ctx.navigate(`/${carryQuery}`);
     }
   });
+
+  const aboutLink = container.querySelector<HTMLAnchorElement>("#navAbout");
+  if (aboutLink) {
+    aboutLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (isOnBuilder) {
+        showAboutOverlay();
+      } else {
+        ctx.navigate(`/about${carryQuery}`);
+      }
+    });
+  }
 }
 
-function showIntroOverlay(ctx: PageCtx) {
-  const introParam = ctx.query.get("intro");
-  const resolved = resolveIntroVariant(introParam) ?? resolveIntroVariant("Intro1")!;
-
+function openOverlay(title: string, bodyHtml: string, actionsHtml: string, wire: (dialog: HTMLElement) => void) {
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
 
   const dialog = document.createElement("div");
   dialog.className = "modal";
   dialog.style.width = "min(560px, 92vw)";
-
-  const heading = document.createElement("h4");
-  heading.textContent = resolved.variant.title;
-  dialog.appendChild(heading);
-
-  const body = document.createElement("div");
-  body.innerHTML = resolved.variant.body;
-  dialog.appendChild(body);
-
-  const actionsWrap = document.createElement("div");
-  actionsWrap.className = "modal-actions";
-  const returnBtn = document.createElement("button");
-  returnBtn.className = "modal-btn";
-  returnBtn.type = "button";
-  returnBtn.textContent = "Return to your decision";
-  returnBtn.addEventListener("click", () => overlay.remove());
-  actionsWrap.appendChild(returnBtn);
-  dialog.appendChild(actionsWrap);
+  dialog.innerHTML = `
+    <h4>${title}</h4>
+    <div>${bodyHtml}</div>
+    <div class="modal-actions">${actionsHtml}</div>
+  `;
 
   overlay.appendChild(dialog);
   document.body.appendChild(overlay);
+  wire(dialog);
+  return overlay;
+}
+
+function showAboutOverlay() {
+  openOverlay(
+    "About",
+    `<p>Framework-free, TypeScript-first, D3-powered decision visualization.</p>`,
+    `<button id="aboutReturnBtn" class="modal-btn">Return to your decision</button>`,
+    (dialog) => {
+      dialog.querySelector<HTMLButtonElement>("#aboutReturnBtn")!.onclick = () => {
+        dialog.closest(".modal-overlay")!.remove();
+      };
+    }
+  );
+}
+
+function showIntroOverlay(ctx: PageCtx) {
+  const introParam = ctx.query.get("intro");
+  const resolved = resolveIntroVariant(introParam) ?? resolveIntroVariant("Intro1")!;
+  const isGP1 = resolved.key === "intro1";
+
+  const overlay = openOverlay(
+    resolved.variant.title,
+    resolved.variant.body,
+    `
+      ${isGP1 ? `<button id="introMoreBtn" class="modal-btn modal-btn--secondary">See More Introductory Information</button>` : ""}
+      <button id="introReturnBtn" class="modal-btn">Return to your decision</button>
+    `,
+    (dialog) => {
+      dialog.querySelector<HTMLButtonElement>("#introReturnBtn")!.onclick = () => overlay.remove();
+      const moreBtn = dialog.querySelector<HTMLButtonElement>("#introMoreBtn");
+      if (moreBtn) {
+        moreBtn.onclick = () => {
+          overlay.remove();
+          showGPMoreInfoOverlay();
+        };
+      }
+    }
+  );
+}
+
+function showGPMoreInfoOverlay() {
+  openOverlay(
+    GP_MORE_INFO_TITLE,
+    GP_MORE_INFO_BODY,
+    `<button id="moreInfoReturnBtn" class="modal-btn">Return to your decision</button>`,
+    (dialog) => {
+      dialog.querySelector<HTMLButtonElement>("#moreInfoReturnBtn")!.onclick = () => {
+        dialog.closest(".modal-overlay")!.remove();
+      };
+    }
+  );
 }
