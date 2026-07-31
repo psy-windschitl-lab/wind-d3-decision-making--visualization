@@ -9,8 +9,8 @@ import { DecisionLayoutChart } from "./vis";
 type HighlightTarget =
   | { type: "optionHeaders" }
   | { type: "factorLabels" }
-  | { type: "row"; index: number }
-  | { type: "cell"; index: number };
+  | { type: "row"; index: number; showHeightArrow?: boolean }
+  | { type: "cell"; index: number; shape?: "oval" | "rect" };
 
 type Step =
   | { kind: "intro"; text: string; buttonLabel: string }
@@ -18,33 +18,36 @@ type Step =
   | { kind: "highlight"; target: HighlightTarget; text: string; buttonLabel: string }
   | { kind: "final"; text: string; buttonLabel: string };
 
-// Julie's example decision: 3 apartment options, 3 factors. Location is Very High
-// importance (tall row), Air Conditioning is Low importance (thin row), Kitchen is
-// Moderate. Ratings below match the specific cells called out in the walkthrough.
+// Julie's example decision, matching the reference screenshot: 3 apartment options
+// (Elm/Oak/Main Street) and 3 factors (Air Conditioning, Location, Price). Location is
+// Very High importance (tall row), Air Conditioning is Low importance (thin row).
+// Likert 1-5 maps to an exact 0/25/50/75/100% green fill, so these values were chosen to
+// land on the specific fills called out in the walkthrough (1 = all brown, 3 = half and
+// half, 4 = mostly green).
 const EX_FACTORS = [
-  { id: "location", label: "Location", weight: 5 },
   { id: "ac", label: "Air Conditioning", weight: 1 },
-  { id: "kitchen", label: "Kitchen", weight: 3 },
+  { id: "location", label: "Location", weight: 5 },
+  { id: "price", label: "Price", weight: 3 },
 ];
 const EX_OPTIONS = [
-  { id: "elm", label: "Elm Street Apartment", identifier: "A" },
-  { id: "main", label: "Main Street Apartment", identifier: "B" },
-  { id: "oak", label: "Oak Street Apartment", identifier: "C" },
+  { id: "elm", label: "Elm Street", identifier: "A" },
+  { id: "oak", label: "Oak Street", identifier: "B" },
+  { id: "main", label: "Main Street", identifier: "C" },
 ];
-// Likert 1-5 ("very bad" .. "very good"), matching DecisionLayoutChart's own scale.
 const EX_LIKERT: Record<string, Record<string, number>> = {
-  location: { elm: 4, main: 2, oak: 3 },
-  ac: { elm: 4, main: 1, oak: 3 },
-  kitchen: { elm: 2, main: 4, oak: 3 },
+  ac: { elm: 4, oak: 4, main: 1 },
+  location: { elm: 4, oak: 2, main: 4 },
+  price: { elm: 2, oak: 4, main: 3 },
 };
 const toSigned = (v: number) => (v - 3) / 2;
 
 // Cell index within DecisionLayoutChart's own row-major cell order (factorIndex * numOptions + optionIndex).
 const CELL = {
-  acElm: 1 * EX_OPTIONS.length + 0,
-  acMain: 1 * EX_OPTIONS.length + 1,
-  locationOak: 0 * EX_OPTIONS.length + 2,
+  acElm: 0 * EX_OPTIONS.length + 0,
+  acMain: 0 * EX_OPTIONS.length + 2,
+  priceMain: 2 * EX_OPTIONS.length + 2,
 };
+const ROW = { ac: 0, location: 1 };
 
 const STEPS: Step[] = [
   {
@@ -54,7 +57,7 @@ const STEPS: Step[] = [
   },
   {
     kind: "cartoon",
-    text: "It will look similar to this one, which was for Julie's decision about apartments.",
+    text: "Here is an example for Julie's apartment decision.",
     buttonLabel: "Continue",
   },
   {
@@ -71,32 +74,32 @@ const STEPS: Step[] = [
   },
   {
     kind: "highlight",
-    target: { type: "row", index: 0 },
+    target: { type: "row", index: ROW.location, showHeightArrow: true },
     text: "This row for the location factor was made extra thick, or tall, because Julie rated location as very important.",
     buttonLabel: "Next",
   },
   {
     kind: "highlight",
-    target: { type: "row", index: 1 },
+    target: { type: "row", index: ROW.ac },
     text: "This row is thin because Julie said air conditioning was low in importance.",
     buttonLabel: "Next",
   },
   {
     kind: "highlight",
-    target: { type: "cell", index: CELL.acElm },
-    text: "This box reflects that Julie rated the air conditioning of the Elm Street Apartment a 4 (good).",
+    target: { type: "cell", index: CELL.acElm, shape: "oval" },
+    text: "This is mostly green because Julie gave a \u201cgood\u201d rating for air conditioning of the Elm Street Apartment.",
     buttonLabel: "Next",
   },
   {
     kind: "highlight",
-    target: { type: "cell", index: CELL.acMain },
-    text: "She rated the air conditioning of Main Street a 1 (very bad).",
+    target: { type: "cell", index: CELL.acMain, shape: "oval" },
+    text: "This is all brown because Julie said \u201cvery bad\u201d for the air conditioning in the Main Street Apt.",
     buttonLabel: "Next",
   },
   {
     kind: "highlight",
-    target: { type: "cell", index: CELL.locationOak },
-    text: "She rated the location of Oak Street a 3 (okay).",
+    target: { type: "cell", index: CELL.priceMain, shape: "rect" },
+    text: "This is half and half because she said \u201cokay\u201d for the price of the Main Street Apt.",
     buttonLabel: "Next",
   },
   {
@@ -106,6 +109,8 @@ const STEPS: Step[] = [
   },
 ];
 
+// A simple, original cartoon avatar - neutral/thoughtful expression (flat mouth, not a
+// frown), with a small thought-bubble to suggest she's picturing the layout below.
 const CARTOON_SVG = `
   <svg viewBox="0 0 220 200" width="180" height="164" aria-hidden="true" focusable="false">
     <circle cx="150" cy="150" r="5" fill="#1a2546"></circle>
@@ -118,7 +123,7 @@ const CARTOON_SVG = `
     <path d="M55 110 Q60 70 90 72 Q120 70 125 110 Q120 92 90 92 Q60 92 55 110 Z" fill="#5b3a29"></path>
     <circle cx="78" cy="122" r="3.5" fill="#22293f"></circle>
     <circle cx="102" cy="122" r="3.5" fill="#22293f"></circle>
-    <path d="M80 138 Q90 132 100 138" stroke="#22293f" stroke-width="2.5" fill="none" stroke-linecap="round"></path>
+    <line x1="80" y1="136" x2="100" y2="136" stroke="#22293f" stroke-width="2.5" stroke-linecap="round"></line>
   </svg>
 `;
 
@@ -151,6 +156,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
   card.className = "modal tutorial-card";
   overlay.appendChild(card);
 
+  // Hidden until the person clicks past the very first "Great!..." screen.
   const skipBtn = document.createElement("button");
   skipBtn.type = "button";
   skipBtn.className = "tutorial-skip";
@@ -184,6 +190,10 @@ export function runLayoutTutorial(onComplete: () => void): void {
 
   const footer = document.createElement("div");
   footer.className = "tutorial-footer";
+  const backBtn = document.createElement("button");
+  backBtn.type = "button";
+  backBtn.className = "tutorial-back";
+  backBtn.textContent = "Back";
   const dots = document.createElement("div");
   dots.className = "tutorial-dots";
   STEPS.forEach(() => {
@@ -194,7 +204,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
   const nextBtn = document.createElement("button");
   nextBtn.type = "button";
   nextBtn.className = "decision-btn tutorial-next";
-  footer.append(dots, nextBtn);
+  footer.append(backBtn, dots, nextBtn);
   card.appendChild(footer);
 
   document.body.appendChild(overlay);
@@ -220,7 +230,10 @@ export function runLayoutTutorial(onComplete: () => void): void {
 
   function ensureChart(): DecisionLayoutChart {
     if (chart) return chart;
-    const width = Math.max(360, chartHost.clientWidth || card.clientWidth || 640);
+    // chartArea must already be laid out (display != "none") before this measures its
+    // width, or chartHost.clientWidth reads as 0 and the chart falls back to a width
+    // that doesn't match its actual box - which is what was cutting the right edge off.
+    const width = Math.max(360, chartHost.clientWidth || 640);
     const height = EX_FACTORS.length * (90 + 8) + 92 + 32;
     chart = new DecisionLayoutChart(chartHost, {
       width,
@@ -247,6 +260,41 @@ export function runLayoutTutorial(onComplete: () => void): void {
     return new DOMRect(left, top, right - left, bottom - top);
   }
 
+  // A vertical, double-headed "dimension" arrow (chevron tips + end caps) spanning the
+  // exact top-to-bottom border of a row, to make "thick/tall" concrete.
+  function drawHeightArrow(rowEl: SVGGElement, hostRect: DOMRect) {
+    const r = rowEl.getBoundingClientRect();
+    const x = r.left - hostRect.left - 30;
+    const y = r.top - hostRect.top;
+    const h = Math.max(8, r.height);
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("class", "tutorial-height-arrow");
+    svg.setAttribute("width", "24");
+    svg.setAttribute("height", String(h));
+    svg.style.left = `${x}px`;
+    svg.style.top = `${y}px`;
+    const mkLine = (x1: number, y1: number, x2: number, y2: number) => {
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", String(x1));
+      line.setAttribute("y1", String(y1));
+      line.setAttribute("x2", String(x2));
+      line.setAttribute("y2", String(y2));
+      line.setAttribute("stroke", "#ffd400");
+      line.setAttribute("stroke-width", "3");
+      line.setAttribute("stroke-linecap", "round");
+      svg.appendChild(line);
+    };
+    mkLine(12, 4, 12, h - 4); // shaft
+    mkLine(4, 4, 20, 4); // top end cap
+    mkLine(4, h - 4, 20, h - 4); // bottom end cap
+    mkLine(12, 4, 6, 12); // top arrowhead, left tick
+    mkLine(12, 4, 18, 12); // top arrowhead, right tick
+    mkLine(12, h - 4, 6, h - 12); // bottom arrowhead, left tick
+    mkLine(12, h - 4, 18, h - 12); // bottom arrowhead, right tick
+    annotationLayer.appendChild(svg);
+  }
+
   function drawHighlight(target: HighlightTarget) {
     clearAnnotations();
     const hostRect = chartHost.getBoundingClientRect();
@@ -256,7 +304,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
     const numOptions = EX_OPTIONS.length;
 
     let rect: DOMRect | null = null;
-    let oval = false;
+    let shape: "oval" | "rect" | "" = "";
     const PAD = 8;
 
     if (target.type === "optionHeaders" && cols.length) {
@@ -268,19 +316,20 @@ export function runLayoutTutorial(onComplete: () => void): void {
       const lastCell = cells[target.index * numOptions + numOptions - 1];
       if (rowEl && lastCell) {
         rect = unionRect([rowEl.getBoundingClientRect(), lastCell.getBoundingClientRect()]);
+        if (target.showHeightArrow) drawHeightArrow(rowEl, hostRect);
       }
     } else if (target.type === "cell") {
       const cellEl = cells[target.index];
       if (cellEl) {
         rect = cellEl.getBoundingClientRect();
-        oval = true;
+        shape = target.shape ?? "oval";
       }
     }
 
     if (!rect || (rect.width === 0 && rect.height === 0)) return;
 
     const box = document.createElement("div");
-    box.className = "tutorial-highlight" + (oval ? " tutorial-highlight--oval" : "");
+    box.className = "tutorial-highlight" + (shape === "oval" ? " tutorial-highlight--oval" : "");
     box.style.left = `${rect.left - hostRect.left - PAD}px`;
     box.style.top = `${rect.top - hostRect.top - PAD}px`;
     box.style.width = `${rect.width + PAD * 2}px`;
@@ -303,6 +352,13 @@ export function runLayoutTutorial(onComplete: () => void): void {
     captionBox.classList.toggle("tutorial-caption--big", step.kind === "intro" || step.kind === "final");
     nextBtn.textContent = step.buttonLabel;
 
+    // The "Skip" button and "How to read your layout" heading only make sense once
+    // someone's past the very first screen - showing them immediately felt premature.
+    const pastIntro = index > 0;
+    skipBtn.style.display = pastIntro ? "" : "none";
+    eyebrow.style.display = pastIntro ? "" : "none";
+    backBtn.style.display = pastIntro ? "" : "none";
+
     if (cartoonTimer !== null) {
       window.clearTimeout(cartoonTimer);
       cartoonTimer = null;
@@ -311,16 +367,24 @@ export function runLayoutTutorial(onComplete: () => void): void {
     if (step.kind === "intro") {
       cartoonHost.style.display = "none";
       chartArea.style.display = "none";
+      clearAnnotations();
     } else if (step.kind === "cartoon") {
       cartoonHost.style.display = "";
-      chartArea.classList.remove("tutorial-chart-area--show");
-      chartArea.style.display = "none";
-      cartoonTimer = window.setTimeout(() => {
-        if (stepIndex !== index) return;
-        ensureChart();
+      clearAnnotations();
+      if (chart) {
+        // Already built (e.g. navigating back to this step) - show immediately.
         chartArea.style.display = "";
-        requestAnimationFrame(() => chartArea.classList.add("tutorial-chart-area--show"));
-      }, 650);
+        chartArea.classList.add("tutorial-chart-area--show");
+      } else {
+        chartArea.classList.remove("tutorial-chart-area--show");
+        chartArea.style.display = "none";
+        cartoonTimer = window.setTimeout(() => {
+          if (stepIndex !== index) return;
+          chartArea.style.display = "";
+          ensureChart();
+          requestAnimationFrame(() => chartArea.classList.add("tutorial-chart-area--show"));
+        }, 650);
+      }
     } else if (step.kind === "highlight") {
       cartoonHost.style.display = "none";
       chartArea.style.display = "";
@@ -350,6 +414,9 @@ export function runLayoutTutorial(onComplete: () => void): void {
   nextBtn.onclick = () => {
     if (stepIndex >= STEPS.length - 1) finish();
     else showStep(stepIndex + 1);
+  };
+  backBtn.onclick = () => {
+    if (stepIndex > 0) showStep(stepIndex - 1);
   };
   skipBtn.onclick = finish;
 
