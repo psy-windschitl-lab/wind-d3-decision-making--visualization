@@ -3,6 +3,7 @@ import { DecisionLayoutChart } from "../lib/vis";
 import { computeWaddScores } from "../lib/wadd";
 import { attachDecisionWorkflow } from "../lib/decisionWorkflow";
 import { renderPostDecisionLanding } from "../pages/postDecision";
+import { runLayoutTutorial, hasSeenLayoutTutorial, markLayoutTutorialSeen } from "../lib/layoutTutorial";
 
 type PreviewKind = "chart" | "table";
 
@@ -84,6 +85,11 @@ const signedToLikert = (s: number) => Math.round(3 + s * 2);
 
 export function createBuilderLayout(config: BuilderConfig): Page {
   return (root, ctx) => {
+    // The layout-interpretation tutorial (and its replay link) is, for now, a GP2-only
+    // touch - other layouts sharing this same factory (wizard, GP1, etc.) are unaffected.
+    // root's parent is the outer element LayoutBuilder.ts stamps with the resolved,
+    // lower-cased layout name (see LayoutBuilder.ts's `root.dataset.layout = resolvedKey`).
+    const isGp2 = root.parentElement?.dataset.layout === "gp2";
     const supportsWADD = config.kind === "chart" || config.kind === "table";
     const waddSetting = ctx.query.get("wadd")?.toLowerCase();
     const waddMode = waddSetting === "on"
@@ -113,11 +119,16 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             Now you can see how good an option is overall by looking at how much green
             appears in the column below it.
           </p>
-          <p style="margin:0; font-size:0.9em; color:var(--muted)">
+          <p style="margin:0 0 10px; font-size:0.9em; color:var(--muted)">
             This is all based on an optimized decision rule. The overall surface area in
             green under an option reflects how a decision algorithm called the WADD
             (weighted-additive) rule would score the overall utility of the option for you.
           </p>
+          ${isGp2 ? `
+          <button id="replayTutorialBtn" type="button" style="background:transparent; border:1px solid rgba(232,238,252,0.25); color:var(--fg); border-radius:6px; padding:0.35rem 0.7rem; font-weight:600; cursor:pointer; font-size:0.85em">
+            How to read this layout &#8250;
+          </button>
+          ` : ""}
         </div>
       `
       : "";
@@ -177,6 +188,9 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     const previewHeading = root.querySelector<HTMLElement>("#previewHeading")!;
     const chartNoteWrap = root.querySelector<HTMLElement>("#chartNoteWrap")!;
     const waddControlWrap = root.querySelector<HTMLElement>("#waddControlWrap")!;
+    root.querySelector<HTMLButtonElement>("#replayTutorialBtn")?.addEventListener("click", () => {
+      runLayoutTutorial(() => {});
+    });
 
     let showWADD = waddMode === "always";
     const updateWaddVisibility = () => {
@@ -810,17 +824,31 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         }
         finished = true;
         reachedFinish = true;
-        if (config.previewMode === "after-finish") {
-          previewCard.style.display = "";
+        const revealLayout = () => {
+          if (config.previewMode === "after-finish") {
+            previewCard.style.display = "";
+          }
+          if (config.restrictPreviewUntilFinish) {
+            chartNoteWrap.style.display = "";
+            waddControlWrap.style.display = "";
+            previewHeading.innerHTML = `<h2 class="h1" style="font-size:2.2rem">Your Layout</h2>`;
+          }
+          updateWaddVisibility();
+          decisionHost.style.display = "";
+          renderPreview(true);
+          window.scrollTo(0, 0);
+        };
+        // The first time someone reaches their own layout, walk them through a quick,
+        // fixed example (Julie's apartment decision) explaining how to read it - row
+        // height = importance, green vs. brown = how favorably an option was rated.
+        // Only meaningful for the chart preview; the table view has no layout to explain.
+        if (isGp2 && config.kind === "chart" && !hasSeenLayoutTutorial()) {
+          markLayoutTutorialSeen();
+          runLayoutTutorial(revealLayout);
+          return;
         }
-        if (config.restrictPreviewUntilFinish) {
-          chartNoteWrap.style.display = "";
-          waddControlWrap.style.display = "";
-          previewHeading.innerHTML = `<h2 class="h1" style="font-size:2.2rem">Your Layout</h2>`;
-        }
-        updateWaddVisibility();
-        decisionHost.style.display = "";
-        renderPreview(true);
+        revealLayout();
+        return;
       }
       window.scrollTo(0, 0);
     };
