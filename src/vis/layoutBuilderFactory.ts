@@ -124,11 +124,6 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             green under an option reflects how a decision algorithm called the WADD
             (weighted-additive) rule would score the overall utility of the option for you.
           </p>
-          ${isGp2 ? `
-          <button id="replayTutorialBtn" type="button" style="background:transparent; border:1px solid rgba(232,238,252,0.25); color:var(--fg); border-radius:6px; padding:0.35rem 0.7rem; font-weight:600; cursor:pointer; font-size:0.85em">
-            How to read this layout &#8250;
-          </button>
-          ` : ""}
         </div>
       `
       : "";
@@ -167,6 +162,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             : `<h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>`}
         </div>
         <div id="viz" style="margin-top:8px; background:#0f1730; border-radius:12px; padding:8px;"></div>
+        ${isGp2 ? `
+        <div id="backToJulieWrap" style="margin-top:10px">
+          <button id="replayTutorialBtn" type="button" style="background:transparent; border:1px solid rgba(232,238,252,0.25); color:var(--fg); border-radius:6px; padding:0.4rem 0.8rem; font-weight:600; cursor:pointer; font-size:0.9em">
+            &#8249; Back to Julie's example
+          </button>
+        </div>
+        ` : ""}
         <div id="chartNoteWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${chartNoteHtml}</div>
         <div id="waddControlWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${showWADDControl}</div>
         <div id="waddScoresWrap" style="display:none; margin-top:12px"></div>
