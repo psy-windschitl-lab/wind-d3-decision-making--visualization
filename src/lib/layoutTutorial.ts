@@ -7,10 +7,11 @@ import { DecisionLayoutChart } from "./vis";
 // and measures the rendered SVG to draw its highlight callouts in the right place.
 
 type HighlightTarget =
+  | { type: "none" }
   | { type: "optionHeaders" }
   | { type: "factorLabels" }
   | { type: "row"; index: number }
-  | { type: "cell"; index: number; shape?: "oval" | "rect" };
+  | { type: "cell"; index: number };
 
 type Step =
   | { kind: "intro"; text: string; buttonLabel: string }
@@ -22,8 +23,8 @@ type Step =
 // (Elm/Oak/Main Street) and 3 factors (Air Conditioning, Location, Price). Location is
 // Very High importance (tall row), Air Conditioning is Low importance (thin row).
 // Likert 1-5 maps to an exact 0/25/50/75/100% green fill, so these values were chosen to
-// land on the specific fills called out in the walkthrough (1 = all brown, 3 = half and
-// half, 4 = mostly green).
+// land on the specific fills called out in the walkthrough (2 = mostly brown, 4 = mostly
+// green).
 const EX_FACTORS = [
   { id: "ac", label: "Air Conditioning", weight: 1 },
   { id: "location", label: "Location", weight: 5 },
@@ -35,7 +36,7 @@ const EX_OPTIONS = [
   { id: "main", label: "Main Street", identifier: "C" },
 ];
 const EX_LIKERT: Record<string, Record<string, number>> = {
-  ac: { elm: 4, oak: 4, main: 1 },
+  ac: { elm: 4, oak: 4, main: 2 },
   location: { elm: 4, oak: 2, main: 4 },
   price: { elm: 2, oak: 4, main: 3 },
 };
@@ -45,25 +46,24 @@ const toSigned = (v: number) => (v - 3) / 2;
 const CELL = {
   acElm: 0 * EX_OPTIONS.length + 0,
   acMain: 0 * EX_OPTIONS.length + 2,
-  priceMain: 2 * EX_OPTIONS.length + 2,
 };
 const ROW = { ac: 0, location: 1 };
 
 const STEPS: Step[] = [
   {
     kind: "intro",
-    text: "Great! Soon, you'll see the layout for your decision.",
+    text: "Great! Soon, you'll see <strong>YOUR</strong> layout.<br><br>But first: an example!",
     buttonLabel: "Continue",
   },
   {
     kind: "cartoon",
-    text: "Here is an example for Julie's apartment decision.",
+    text: "Julie is choosing apartments. Here is <strong>HER</strong> layout based on <strong>HER</strong> entries.",
     buttonLabel: "Continue",
   },
   {
     kind: "highlight",
     target: { type: "optionHeaders" },
-    text: "Julie entered three options.",
+    text: "She had entered three options.",
     buttonLabel: "Next",
   },
   {
@@ -75,36 +75,36 @@ const STEPS: Step[] = [
   {
     kind: "highlight",
     target: { type: "row", index: ROW.location },
-    text: "This row for the location factor was made extra thick, or tall, because Julie rated location as very important.",
+    text: "This row is thick/tall because she said location was \u201cVery High\u201d in importance.",
     buttonLabel: "Next",
   },
   {
     kind: "highlight",
     target: { type: "row", index: ROW.ac },
-    text: "This row is thin because Julie said air conditioning was low in importance.",
+    text: "This row is thin because she said air conditioning was \u201cLow\u201d in importance.",
     buttonLabel: "Next",
   },
   {
     kind: "highlight",
-    target: { type: "cell", index: CELL.acElm, shape: "oval" },
-    text: "This is mostly green because Julie gave a \u201cgood\u201d rating for air conditioning of the Elm Street Apartment.",
+    target: { type: "cell", index: CELL.acElm },
+    text: "This is mostly green because she rated the air conditioning for Option A (Elm St) as \u201cGood.\u201d",
     buttonLabel: "Next",
   },
   {
     kind: "highlight",
-    target: { type: "cell", index: CELL.acMain, shape: "oval" },
-    text: "This is all brown because Julie said \u201cvery bad\u201d for the air conditioning in the Main Street Apt.",
+    target: { type: "cell", index: CELL.acMain },
+    text: "This is mostly brown because she rated the air conditioning for Option C (Main St) as \u201cBad.\u201d",
     buttonLabel: "Next",
   },
   {
     kind: "highlight",
-    target: { type: "cell", index: CELL.priceMain, shape: "rect" },
-    text: "This is half and half because she said \u201cokay\u201d for the price of the Main Street Apt.",
+    target: { type: "none" },
+    text: "To find Julie\u2019s <strong>BEST OVERALL</strong> option, you simply find the one with the most green under it.<br><br>This will always be consistent with an optimized decision rule (involving scores that give more weight to evaluations on subjectively important factors).",
     buttonLabel: "Next",
   },
   {
     kind: "final",
-    text: "Now let's look at the layout for your own decision!",
+    text: "Ready to see <strong>YOUR</strong> layout?",
     buttonLabel: "See my layout",
   },
 ];
@@ -165,11 +165,17 @@ export function runLayoutTutorial(onComplete: () => void): void {
 
   const eyebrow = document.createElement("p");
   eyebrow.className = "tutorial-eyebrow";
-  eyebrow.textContent = "How to read your layout";
+  eyebrow.textContent = "Example";
   card.appendChild(eyebrow);
 
   const captionBox = document.createElement("div");
   captionBox.className = "tutorial-caption";
+  // captionBox is a flex container (to vertically center its content); its innerHTML
+  // must be a single wrapped block rather than raw mixed text/<strong>/<br> nodes, or
+  // flex treats each text run and inline element as its own flex item and scrambles the
+  // line breaks and wrapping instead of flowing as normal text.
+  const captionText = document.createElement("div");
+  captionBox.appendChild(captionText);
   card.appendChild(captionBox);
 
   const cartoonHost = document.createElement("div");
@@ -345,8 +351,10 @@ export function runLayoutTutorial(onComplete: () => void): void {
     const cells = Array.from(chartHost.querySelectorAll<SVGGElement>(".dl-grid > g.cell"));
     const numOptions = EX_OPTIONS.length;
 
+    if (target.type === "none") return;
+
     let rect: DOMRect | null = null;
-    let shape: "oval" | "rect" | "" = "";
+    let isCell = false;
     let isRow = false;
     const PAD = 8;
 
@@ -367,7 +375,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
       const cellRect = visibleRect(cells[target.index], "rect.cell-bg");
       if (cellRect) {
         rect = cellRect;
-        shape = target.shape ?? "oval";
+        isCell = true;
       }
     }
 
@@ -382,7 +390,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
     const boxHeight = Math.round(rect.height + PAD * 2);
 
     const box = document.createElement("div");
-    box.className = "tutorial-highlight" + (shape === "oval" ? " tutorial-highlight--oval" : "");
+    box.className = "tutorial-highlight" + (isCell ? " tutorial-highlight--oval" : "");
     box.style.left = `${boxLeft}px`;
     box.style.top = `${boxTop}px`;
     box.style.width = `${boxWidth}px`;
@@ -403,15 +411,19 @@ export function runLayoutTutorial(onComplete: () => void): void {
     const step = STEPS[index];
     updateDots();
 
-    captionBox.textContent = step.text;
+    // innerHTML (not textContent) because STEPS text uses <br> for line breaks and
+    // <strong> for emphasis - this is all fixed copy we author, never user input.
+    captionText.innerHTML = step.text;
     captionBox.classList.toggle("tutorial-caption--big", step.kind === "intro" || step.kind === "final");
     nextBtn.textContent = step.buttonLabel;
 
-    // The "Skip" button and "How to read your layout" heading only make sense once
-    // someone's past the very first screen - showing them immediately felt premature.
+    // The "Skip" button only makes sense once someone's past the very first screen -
+    // showing it immediately felt premature. The "Example" label only makes sense while
+    // Julie's fictional example is actually on screen, not on the intro or the final
+    // "ready to see yours" screen.
     const pastIntro = index > 0;
     skipBtn.style.display = pastIntro ? "" : "none";
-    eyebrow.style.display = pastIntro ? "" : "none";
+    eyebrow.style.display = (step.kind === "cartoon" || step.kind === "highlight") ? "" : "none";
     backBtn.style.display = pastIntro ? "" : "none";
 
     if (cartoonTimer !== null) {
