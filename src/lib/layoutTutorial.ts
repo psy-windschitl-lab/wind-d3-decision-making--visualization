@@ -252,6 +252,17 @@ export function runLayoutTutorial(onComplete: () => void): void {
     annotationLayer.replaceChildren();
   }
 
+  // DecisionLayoutChart.render() animates attributes like transform/x/y/width/height
+  // over a 150ms D3 transition, including on the very first render. A single
+  // requestAnimationFrame fires on the next paint (~16ms later) - well before that
+  // transition finishes - so measuring right away catches elements mid-flight and draws
+  // the highlight around wherever they started, not where they end up. Wait past the
+  // transition, then one more frame so layout has settled, before measuring.
+  const CHART_SETTLE_MS = 200;
+  function afterChartSettled(cb: () => void) {
+    window.setTimeout(() => requestAnimationFrame(cb), CHART_SETTLE_MS);
+  }
+
   function unionRect(rects: DOMRect[]): DOMRect {
     const left = Math.min(...rects.map(r => r.left));
     const top = Math.min(...rects.map(r => r.top));
@@ -260,13 +271,24 @@ export function runLayoutTutorial(onComplete: () => void): void {
     return new DOMRect(left, top, right - left, bottom - top);
   }
 
+  // The .col/.row/.cell <g> elements are the whole interactive group, not just the
+  // visible card - a row's resize-handle straddles its bottom edge, a cell's
+  // score-handle can poke past its left/right edge at extreme scores, etc. Those
+  // invisible hit-areas inflate the group's getBoundingClientRect() well past the card
+  // people actually see, so measure the visible background rect inside the group
+  // instead of the group itself.
+  function visibleRect(el: SVGGElement | null | undefined, selector: string): DOMRect | null {
+    if (!el) return null;
+    const bg = el.querySelector<SVGGraphicsElement>(selector);
+    return (bg ?? el).getBoundingClientRect();
+  }
+
   // A vertical, double-headed "dimension" arrow (chevron tips + end caps) spanning the
   // exact top-to-bottom border of a row, to make "thick/tall" concrete.
-  function drawHeightArrow(rowEl: SVGGElement, hostRect: DOMRect) {
-    const r = rowEl.getBoundingClientRect();
-    const x = r.left - hostRect.left - 30;
-    const y = r.top - hostRect.top;
-    const h = Math.max(8, r.height);
+  function drawHeightArrow(rowRect: DOMRect, hostRect: DOMRect) {
+    const x = rowRect.left - hostRect.left - 30;
+    const y = rowRect.top - hostRect.top;
+    const h = Math.max(8, rowRect.height);
     const svgNS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(svgNS, "svg");
     svg.setAttribute("class", "tutorial-height-arrow");
@@ -308,32 +330,37 @@ export function runLayoutTutorial(onComplete: () => void): void {
     const PAD = 8;
 
     if (target.type === "optionHeaders" && cols.length) {
-      rect = unionRect(cols.map(el => el.getBoundingClientRect()));
+      const rects = cols.map(el => visibleRect(el, "rect.header-bg")).filter((r): r is DOMRect => !!r);
+      if (rects.length) rect = unionRect(rects);
     } else if (target.type === "factorLabels" && rows.length) {
-      rect = unionRect(rows.map(el => el.getBoundingClientRect()));
+      const rects = rows.map(el => visibleRect(el, "rect.row-bg")).filter((r): r is DOMRect => !!r);
+      if (rects.length) rect = unionRect(rects);
     } else if (target.type === "row") {
-      const rowEl = rows[target.index];
-      const lastCell = cells[target.index * numOptions + numOptions - 1];
-      if (rowEl && lastCell) {
-        rect = unionRect([rowEl.getBoundingClientRect(), lastCell.getBoundingClientRect()]);
-        if (target.showHeightArrow) drawHeightArrow(rowEl, hostRect);
+      const rowRect = visibleRect(rows[target.index], "rect.row-bg");
+      const lastCellRect = visibleRect(cells[target.index * numOptions + numOptions - 1], "rect.cell-bg");
+      if (rowRect && lastCellRect) {
+        rect = unionRect([rowRect, lastCellRect]);
+        if (target.showHeightArrow) drawHeightArrow(rowRect, hostRect);
       }
     } else if (target.type === "cell") {
-      const cellEl = cells[target.index];
-      if (cellEl) {
-        rect = cellEl.getBoundingClientRect();
+      const cellRect = visibleRect(cells[target.index], "rect.cell-bg");
+      if (cellRect) {
+        rect = cellRect;
         shape = target.shape ?? "oval";
       }
     }
 
     if (!rect || (rect.width === 0 && rect.height === 0)) return;
 
+    // Round to whole pixels so the highlight's edges land on the same pixel grid as the
+    // SVG card beneath it instead of drifting a sub-pixel off from anti-aliasing/rounding
+    // differences between SVG and HTML box rendering.
     const box = document.createElement("div");
     box.className = "tutorial-highlight" + (shape === "oval" ? " tutorial-highlight--oval" : "");
-    box.style.left = `${rect.left - hostRect.left - PAD}px`;
-    box.style.top = `${rect.top - hostRect.top - PAD}px`;
-    box.style.width = `${rect.width + PAD * 2}px`;
-    box.style.height = `${rect.height + PAD * 2}px`;
+    box.style.left = `${Math.round(rect.left - hostRect.left - PAD)}px`;
+    box.style.top = `${Math.round(rect.top - hostRect.top - PAD)}px`;
+    box.style.width = `${Math.round(rect.width + PAD * 2)}px`;
+    box.style.height = `${Math.round(rect.height + PAD * 2)}px`;
     annotationLayer.appendChild(box);
   }
 
@@ -390,7 +417,10 @@ export function runLayoutTutorial(onComplete: () => void): void {
       chartArea.style.display = "";
       chartArea.classList.add("tutorial-chart-area--show");
       ensureChart();
-      requestAnimationFrame(() => drawHighlight(step.target));
+      afterChartSettled(() => {
+        if (stepIndex !== index) return;
+        drawHighlight(step.target);
+      });
     } else {
       cartoonHost.style.display = "none";
       chartArea.style.display = "none";
