@@ -9,7 +9,7 @@ import { DecisionLayoutChart } from "./vis";
 type HighlightTarget =
   | { type: "optionHeaders" }
   | { type: "factorLabels" }
-  | { type: "row"; index: number; showHeightArrow?: boolean }
+  | { type: "row"; index: number }
   | { type: "cell"; index: number; shape?: "oval" | "rect" };
 
 type Step =
@@ -74,7 +74,7 @@ const STEPS: Step[] = [
   },
   {
     kind: "highlight",
-    target: { type: "row", index: ROW.location, showHeightArrow: true },
+    target: { type: "row", index: ROW.location },
     text: "This row for the location factor was made extra thick, or tall, because Julie rated location as very important.",
     buttonLabel: "Next",
   },
@@ -185,7 +185,15 @@ export function runLayoutTutorial(onComplete: () => void): void {
   chartHost.className = "tutorial-chart-host";
   const annotationLayer = document.createElement("div");
   annotationLayer.className = "tutorial-annotation-layer";
-  chartArea.append(chartHost, annotationLayer);
+  // annotationLayer must be a child of chartHost, not a sibling under chartArea - an
+  // absolutely-positioned box's "inset: 0" resolves against its containing block's
+  // *padding* edge, while chartHost (a normal-flow sibling) starts at chartArea's
+  // *content* edge, one padding-width further in. As siblings, every highlight drawn
+  // relative to chartHost landed exactly chartArea's padding short of the correct
+  // position (up and to the left). Nesting it inside chartHost (which has no padding of
+  // its own) makes the two origins coincide.
+  chartHost.appendChild(annotationLayer);
+  chartArea.appendChild(chartHost);
   card.appendChild(chartArea);
 
   const footer = document.createElement("div");
@@ -284,11 +292,9 @@ export function runLayoutTutorial(onComplete: () => void): void {
   }
 
   // A vertical, double-headed "dimension" arrow (chevron tips + end caps) spanning the
-  // exact top-to-bottom border of a row, to make "thick/tall" concrete.
-  function drawHeightArrow(rowRect: DOMRect, hostRect: DOMRect) {
-    const x = rowRect.left - hostRect.left - 30;
-    const y = rowRect.top - hostRect.top;
-    const h = Math.max(8, rowRect.height);
+  // exact top-to-bottom border of the yellow box, to make "thick/tall" concrete. x/y/h
+  // are host-local coordinates; x is the left edge of the arrow's 24px-wide glyph.
+  function drawSingleHeightArrow(x: number, y: number, h: number) {
     const svgNS = "http://www.w3.org/2000/svg";
     const svg = document.createElementNS(svgNS, "svg");
     svg.setAttribute("class", "tutorial-height-arrow");
@@ -317,6 +323,20 @@ export function runLayoutTutorial(onComplete: () => void): void {
     annotationLayer.appendChild(svg);
   }
 
+  // A single arrow off to the side is easy to miss against a whole highlighted row, so
+  // repeat it at evenly-spaced points across the full width of the yellow box - spanning
+  // the box's own top-to-bottom edges - to make the row's height unmistakable wherever
+  // someone happens to be looking.
+  const ROW_HEIGHT_ARROW_COUNT = 4;
+  function drawHeightArrows(boxLeft: number, boxTop: number, boxWidth: number, boxHeight: number) {
+    const h = Math.max(8, boxHeight);
+    for (let i = 0; i < ROW_HEIGHT_ARROW_COUNT; i++) {
+      const frac = (i + 0.5) / ROW_HEIGHT_ARROW_COUNT;
+      const x = boxLeft + boxWidth * frac - 12; // center the 24px-wide glyph on this point
+      drawSingleHeightArrow(x, boxTop, h);
+    }
+  }
+
   function drawHighlight(target: HighlightTarget) {
     clearAnnotations();
     const hostRect = chartHost.getBoundingClientRect();
@@ -327,6 +347,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
 
     let rect: DOMRect | null = null;
     let shape: "oval" | "rect" | "" = "";
+    let isRow = false;
     const PAD = 8;
 
     if (target.type === "optionHeaders" && cols.length) {
@@ -340,7 +361,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
       const lastCellRect = visibleRect(cells[target.index * numOptions + numOptions - 1], "rect.cell-bg");
       if (rowRect && lastCellRect) {
         rect = unionRect([rowRect, lastCellRect]);
-        if (target.showHeightArrow) drawHeightArrow(rowRect, hostRect);
+        isRow = true;
       }
     } else if (target.type === "cell") {
       const cellRect = visibleRect(cells[target.index], "rect.cell-bg");
@@ -355,13 +376,20 @@ export function runLayoutTutorial(onComplete: () => void): void {
     // Round to whole pixels so the highlight's edges land on the same pixel grid as the
     // SVG card beneath it instead of drifting a sub-pixel off from anti-aliasing/rounding
     // differences between SVG and HTML box rendering.
+    const boxLeft = Math.round(rect.left - hostRect.left - PAD);
+    const boxTop = Math.round(rect.top - hostRect.top - PAD);
+    const boxWidth = Math.round(rect.width + PAD * 2);
+    const boxHeight = Math.round(rect.height + PAD * 2);
+
     const box = document.createElement("div");
     box.className = "tutorial-highlight" + (shape === "oval" ? " tutorial-highlight--oval" : "");
-    box.style.left = `${Math.round(rect.left - hostRect.left - PAD)}px`;
-    box.style.top = `${Math.round(rect.top - hostRect.top - PAD)}px`;
-    box.style.width = `${Math.round(rect.width + PAD * 2)}px`;
-    box.style.height = `${Math.round(rect.height + PAD * 2)}px`;
+    box.style.left = `${boxLeft}px`;
+    box.style.top = `${boxTop}px`;
+    box.style.width = `${boxWidth}px`;
+    box.style.height = `${boxHeight}px`;
     annotationLayer.appendChild(box);
+
+    if (isRow) drawHeightArrows(boxLeft, boxTop, boxWidth, boxHeight);
   }
 
   function updateDots() {
