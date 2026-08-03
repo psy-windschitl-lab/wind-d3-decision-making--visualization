@@ -570,18 +570,15 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep2Importance() {
       stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 4--Rate factor importance</h2>
-        <p style="color:var(--muted); margin-top:4px; font-size:1.5em; line-height:1.3">
-          Now please rate the importance of each factor. For each factor, think about
-          how your options differ and then rate how important these differences are to you.
-        </p>
+        <h2 class="h1" style="font-size:1.2rem">Step 3--Rate factor importance</h2>
+        <p style="color:var(--muted); margin-top:4px; font-size:1.5em; line-height:1.3">&nbsp;<br>&nbsp;</p>
         <div id="factorsImportance"></div>
       `;
       const container = stepHost.querySelector<HTMLDivElement>("#factorsImportance")!;
       drawFactorsImportance(container);
 
       backBtn.style.display = "";
-      nextBtn.textContent = "Finish";
+      nextBtn.textContent = "Next";
     }
 
     function drawFactorsImportance(container: HTMLElement) {
@@ -647,7 +644,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep4() {
       stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 3--Rate options on each factor</h2>
+        <h2 class="h1" style="font-size:1.2rem">Step 4--Rate options on each factor</h2>
         <p style="color:var(--muted); margin:10px 0 16px; font-size:1.5em; line-height:1.3">Now, you'll rate each option on each factor, using this scale.</p>
         <div style="display:flex; justify-content:center">
           <svg viewBox="0 0 700 210" width="100%" style="max-width:640px; overflow:visible">
@@ -667,8 +664,6 @@ export function createBuilderLayout(config: BuilderConfig): Page {
                 <text x="${labelX}" y="158" text-anchor="middle"
                   fill="var(--muted)" font-style="italic" font-size="19">${SCORE_LABELS[n - 1]}</text>
               `).join("")}
-              <text x="350" y="195" text-anchor="middle"
-                fill="var(--muted)" font-style="italic" font-size="19">compared to the other options</text>
             </g>
           </svg>
         </div>
@@ -679,7 +674,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       drawFactorBlocks(container);
 
       backBtn.style.display = "";
-      nextBtn.textContent = "Next";
+      nextBtn.textContent = "Finish";
     }
 
     function drawFactorBlocks(container: HTMLElement) {
@@ -704,7 +699,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const instr1 = document.createElement("p");
         instr1.style.margin = "0 0 14px";
         instr1.style.color = "var(--muted)";
-        instr1.innerHTML = `Think about how your options compare to each other <u>on this factor</u>.`;
+        instr1.innerHTML = `You’ll need to rate each option <u>on this factor</u>.`;
 
         block.append(considerLine, bigFactor, instr1);
 
@@ -781,8 +776,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function renderCurrentStep() {
       if (currentStep === 1) renderStep1();
       else if (currentStep === 2) renderStep2();
-      else if (currentStep === 3) renderStep4();
-      else renderStep2Importance();
+      else if (currentStep === 3) renderStep2Importance();
+      else renderStep4();
     }
 
     function go(step: 1 | 2 | 3 | 4) {
@@ -809,19 +804,19 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const prev = deepClone(state); reconcileScores(prev, state);
         go(3);
       } else if (currentStep === 3) {
-        const untouchedCell = state.factors
-          .flatMap(f => state.options.map(o => ({ f, o })))
-          .find(({ f, o }) => !touchedCells.has(cellKey(f.id, o.id)));
-        if (untouchedCell) {
-          alert(`Please rate "${untouchedCell.o.label}" on "${untouchedCell.f.label}" before continuing.`);
+        const untouchedFactor = state.factors.find(f => !touchedImportance.has(f.id));
+        if (untouchedFactor) {
+          alert(`Please set an importance rating for "${untouchedFactor.label}" before continuing.`);
           return;
         }
         const prev = deepClone(state); reconcileScores(prev, state);
         go(4);
       } else {
-        const untouchedFactor = state.factors.find(f => !touchedImportance.has(f.id));
-        if (untouchedFactor) {
-          alert(`Please set an importance rating for "${untouchedFactor.label}" before finishing.`);
+        const untouchedCell = state.factors
+          .flatMap(f => state.options.map(o => ({ f, o })))
+          .find(({ f, o }) => !touchedCells.has(cellKey(f.id, o.id)));
+        if (untouchedCell) {
+          alert(`Please rate "${untouchedCell.o.label}" on "${untouchedCell.f.label}" before finishing.`);
           return;
         }
         finished = true;
