@@ -137,12 +137,16 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       ? `
         <div style="margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
           <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
-            Like in <a href="#" id="julieExampleLink" style="color:inherit; text-decoration:underline; cursor:pointer">the example with Julie</a>:
+            Like in <a href="#" id="julieExampleLink" style="color:inherit; text-decoration:underline; cursor:pointer">the example</a>:
           </p>
           <ul style="margin:0 0 10px; padding-left:1.4em; font-size:1.6em; color:var(--fg); font-weight:700; line-height:1.4">
             <li>factors that you said were more important have thicker/taller rows</li>
             <li>more green versus brown in a box means you rated an option higher on that factor</li>
           </ul>
+          <p style="margin:0 0 14px; font-size:1.6em; color:var(--fg); font-weight:700">
+            Entries can be changed here or by
+            <a href="#" id="returnToEntryStepsLink" style="color:inherit; text-decoration:underline; cursor:pointer">returning to entry steps</a>.
+          </p>
           <p style="margin:0 0 14px; font-size:1.6em; color:var(--fg); font-weight:700">
             To find your <strong>BEST OVERALL</strong> option, look for the one with the most
             green under it. This will always be consistent with an optimized decision rule.
@@ -179,7 +183,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       : "";
 
     root.innerHTML = `
-      <section class="card">
+      <section id="wizardCard" class="card">
         <div id="step"></div>
         <div style="display:flex; gap:.5rem; margin-top:12px">
           <button id="backBtn" style="display:none">Back</button>
@@ -198,6 +202,11 @@ export function createBuilderLayout(config: BuilderConfig): Page {
               ? `<h2 class="h1" style="font-size:2.2rem; margin-bottom:0">PREVIEW</h2><p style="color:var(--muted); margin-top:4px">of your layout</p>`
               : `<h2 class="h1" style="font-size:1.2rem">Summary of Your Information and Ratings</h2>`}
           </div>
+          ${isGp2 ? `
+          <button id="backToEntriesBtn" type="button" style="display:none; background:transparent; border:1px solid rgba(232,238,252,0.25); color:var(--fg); border-radius:6px; padding:0.4rem 0.8rem; font-weight:600; cursor:pointer; font-size:0.9em; white-space:nowrap">
+            &#8249; Back to My Entries
+          </button>
+          ` : ""}
         </div>
         <div id="viz" style="margin-top:8px; background:#0f1730; border-radius:12px; padding:8px;"></div>
         <div id="chartNoteWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${isGp2 ? gp2ChartNoteHtml : chartNoteHtml}</div>
@@ -221,12 +230,29 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     const previewHeading = root.querySelector<HTMLElement>("#previewHeading")!;
     const chartNoteWrap = root.querySelector<HTMLElement>("#chartNoteWrap")!;
     const waddControlWrap = root.querySelector<HTMLElement>("#waddControlWrap")!;
+    const wizardCard = root.querySelector<HTMLElement>("#wizardCard")!;
+    const backToEntriesBtn = root.querySelector<HTMLButtonElement>("#backToEntriesBtn");
     root.querySelector<HTMLButtonElement>("#replayTutorialBtn")?.addEventListener("click", () => {
       runLayoutTutorial(() => {});
     });
     root.querySelector<HTMLAnchorElement>("#julieExampleLink")?.addEventListener("click", (event) => {
       event.preventDefault();
       runLayoutTutorial(() => {});
+    });
+    // GP2's layout reveal is its own "page" - reached by Finish, left by this. decisionHost
+    // is declared further down (it's a plain created element, not part of root.innerHTML),
+    // but this closure isn't invoked until a real click, by which point it exists - same
+    // pattern already used by revealLayout below.
+    const goBackToEntries = () => {
+      wizardCard.style.display = "";
+      previewCard.style.display = "none";
+      decisionHost.style.display = "none";
+      window.scrollTo(0, 0);
+    };
+    backToEntriesBtn?.addEventListener("click", goBackToEntries);
+    root.querySelector<HTMLAnchorElement>("#returnToEntryStepsLink")?.addEventListener("click", (event) => {
+      event.preventDefault();
+      goBackToEntries();
     });
 
     let showWADD = waddMode === "always";
@@ -870,6 +896,12 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             previewHeading.innerHTML = `<h2 class="h1" style="font-size:2.2rem">Your Layout</h2>`;
           } else if (isGp2) {
             previewHeading.innerHTML = `<h2 class="h1" style="font-size:2.6rem; margin-bottom:0">YOUR Layout</h2>`;
+          }
+          if (isGp2) {
+            // The layout becomes its own "page" - the entry wizard steps out of the way
+            // until someone asks for them back (backToEntriesBtn / returnToEntryStepsLink).
+            wizardCard.style.display = "none";
+            if (backToEntriesBtn) backToEntriesBtn.style.display = "";
           }
           updateWaddVisibility();
           decisionHost.style.display = "";
