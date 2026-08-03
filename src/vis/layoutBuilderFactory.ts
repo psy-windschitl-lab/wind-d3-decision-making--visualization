@@ -3,7 +3,7 @@ import { DecisionLayoutChart } from "../lib/vis";
 import { computeWaddScores } from "../lib/wadd";
 import { attachDecisionWorkflow } from "../lib/decisionWorkflow";
 import { renderPostDecisionLanding } from "../pages/postDecision";
-import { runLayoutTutorial, hasSeenLayoutTutorial, markLayoutTutorialSeen } from "../lib/layoutTutorial";
+import { runLayoutTutorial } from "../lib/layoutTutorial";
 
 type PreviewKind = "chart" | "table";
 
@@ -834,18 +834,19 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             chartNoteWrap.style.display = "";
             waddControlWrap.style.display = "";
             previewHeading.innerHTML = `<h2 class="h1" style="font-size:2.2rem">Your Layout</h2>`;
+          } else if (isGp2) {
+            previewHeading.innerHTML = `<h2 class="h1" style="font-size:1.2rem">YOUR Layout</h2>`;
           }
           updateWaddVisibility();
           decisionHost.style.display = "";
           renderPreview(true);
           window.scrollTo(0, 0);
         };
-        // The first time someone reaches their own layout, walk them through a quick,
-        // fixed example (Julie's apartment decision) explaining how to read it - row
-        // height = importance, green vs. brown = how favorably an option was rated.
-        // Only meaningful for the chart preview; the table view has no layout to explain.
-        if (isGp2 && config.kind === "chart" && !hasSeenLayoutTutorial()) {
-          markLayoutTutorialSeen();
+        // Every time someone reaches their own layout, walk them through a quick, fixed
+        // example (Julie's apartment decision) explaining how to read it - row height =
+        // importance, green vs. brown = how favorably an option was rated. Only
+        // meaningful for the chart preview; the table view has no layout to explain.
+        if (isGp2 && config.kind === "chart") {
           runLayoutTutorial(revealLayout);
           return;
         }

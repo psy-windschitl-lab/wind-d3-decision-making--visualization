@@ -16,18 +16,18 @@ type HighlightTarget =
 type Step =
   | { kind: "intro"; text: string; buttonLabel: string }
   | { kind: "cartoon"; text: string; buttonLabel: string }
-  | { kind: "highlight"; target: HighlightTarget; text: string; buttonLabel: string }
+  | { kind: "highlight"; target: HighlightTarget; text: string; buttonLabel: string; captionPosition?: "above" | "below" }
   | { kind: "final"; text: string; buttonLabel: string };
 
 // Julie's example decision, matching the reference screenshot: 3 apartment options
 // (Elm/Oak/Main Street) and 3 factors (Air Conditioning, Location, Price). Location is
-// Very High importance (tall row), Air Conditioning is Low importance (thin row).
+// High importance (tall row), Air Conditioning is Low importance (thin row).
 // Likert 1-5 maps to an exact 0/25/50/75/100% green fill, so these values were chosen to
 // land on the specific fills called out in the walkthrough (2 = mostly brown, 4 = mostly
 // green).
 const EX_FACTORS = [
   { id: "ac", label: "Air Conditioning", weight: 1 },
-  { id: "location", label: "Location", weight: 5 },
+  { id: "location", label: "Location", weight: 4 },
   { id: "price", label: "Price", weight: 3 },
 ];
 const EX_OPTIONS = [
@@ -37,8 +37,8 @@ const EX_OPTIONS = [
 ];
 const EX_LIKERT: Record<string, Record<string, number>> = {
   ac: { elm: 4, oak: 4, main: 2 },
-  location: { elm: 4, oak: 2, main: 4 },
-  price: { elm: 2, oak: 4, main: 3 },
+  location: { elm: 3, oak: 2, main: 3 },
+  price: { elm: 2, oak: 4, main: 4 },
 };
 const toSigned = (v: number) => (v - 3) / 2;
 
@@ -75,7 +75,7 @@ const STEPS: Step[] = [
   {
     kind: "highlight",
     target: { type: "row", index: ROW.location },
-    text: "This row is thick/tall because she said location was \u201cVery High\u201d in importance.",
+    text: "This row is thick/tall because she said location was \u201cHigh\u201d in importance.",
     buttonLabel: "Next",
   },
   {
@@ -101,6 +101,7 @@ const STEPS: Step[] = [
     target: { type: "none" },
     text: "To find Julie\u2019s <strong>BEST OVERALL</strong> option, you simply find the one with the most green under it.<br><br>This will always be consistent with an optimized decision rule (involving scores that give more weight to evaluations on subjectively important factors).",
     buttonLabel: "Next",
+    captionPosition: "below",
   },
   {
     kind: "final",
@@ -126,27 +127,6 @@ const CARTOON_SVG = `
     <line x1="80" y1="136" x2="100" y2="136" stroke="#22293f" stroke-width="2.5" stroke-linecap="round"></line>
   </svg>
 `;
-
-const SEEN_STORAGE_KEY = "decision-layout-tutorial-seen";
-
-// Whether this browser has already auto-played the layout tutorial once. Wrapped in a
-// try/catch since localStorage can throw (e.g. private browsing in some browsers) -
-// worst case, the tutorial just plays every time instead of failing outright.
-export function hasSeenLayoutTutorial(): boolean {
-  try {
-    return localStorage.getItem(SEEN_STORAGE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-export function markLayoutTutorialSeen(): void {
-  try {
-    localStorage.setItem(SEEN_STORAGE_KEY, "1");
-  } catch {
-    // ignore - non-fatal if it can't be persisted
-  }
-}
 
 export function runLayoutTutorial(onComplete: () => void): void {
   const overlay = document.createElement("div");
@@ -416,6 +396,18 @@ export function runLayoutTutorial(onComplete: () => void): void {
     captionText.innerHTML = step.text;
     captionBox.classList.toggle("tutorial-caption--big", step.kind === "intro" || step.kind === "final");
     nextBtn.textContent = step.buttonLabel;
+
+    // Most steps show the caption above the chart (its natural position, right before
+    // cartoonHost/chartArea in the DOM). A step can opt into "below" to have it read as
+    // a comment on the chart people just finished looking at, instead of an instruction
+    // for what they're about to see.
+    const captionBelow = step.kind === "highlight" && step.captionPosition === "below";
+    captionBox.classList.toggle("tutorial-caption--below", captionBelow);
+    if (captionBelow) {
+      chartArea.after(captionBox);
+    } else {
+      cartoonHost.before(captionBox);
+    }
 
     // The "Skip" button only makes sense once someone's past the very first screen -
     // showing it immediately felt premature. The "Example" label only makes sense while
