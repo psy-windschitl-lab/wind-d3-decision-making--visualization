@@ -761,12 +761,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         bigFactor.style.margin = "2px 0 14px";
         bigFactor.textContent = f.label;
 
-        const instr1 = document.createElement("p");
-        instr1.style.margin = "0 0 14px";
-        instr1.style.color = "var(--muted)";
-        instr1.innerHTML = `For this factor, rate each option.`;
-
-        block.append(considerLine, bigFactor, instr1);
+        block.append(considerLine, bigFactor);
 
         const row = document.createElement("div");
         row.style.display = "flex";
@@ -784,16 +779,19 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           question.style.color = "var(--muted)";
           question.style.margin = "0 0 8px";
           question.style.textAlign = "center";
-          const prefix = document.createTextNode(`How good is Option ${o.identifier} (`);
-          const nameSpan = document.createElement("span");
-          nameSpan.style.color = "var(--fg)";
-          nameSpan.style.fontWeight = "600";
-          nameSpan.textContent = o.label;
-          const midText = document.createTextNode(") ");
-          const underline = document.createElement("u");
-          underline.textContent = "on this factor";
-          const suffix = document.createTextNode("?");
-          question.append(prefix, nameSpan, midText, underline, suffix);
+          const prefix = document.createTextNode(`On this factor, what’s your rating of Option ${o.identifier}`);
+          question.append(prefix);
+          if (o.label.trim()) {
+            const openParen = document.createTextNode(" (");
+            const nameSpan = document.createElement("span");
+            nameSpan.style.color = "var(--fg)";
+            nameSpan.style.fontWeight = "600";
+            nameSpan.textContent = o.label;
+            const closeParen = document.createTextNode(")?");
+            question.append(openParen, nameSpan, closeParen);
+          } else {
+            question.append(document.createTextNode("?"));
+          }
 
           const group = document.createElement("div");
           group.className = "likert-group";
