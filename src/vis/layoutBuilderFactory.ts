@@ -130,34 +130,45 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       `
       : "";
 
-    // GP2-only version of chartNoteHtml: ties the color/height explanation back to the
-    // Julie example people just walked through, and embeds the WADD-reveal button in the
-    // flow of the text instead of a separate checkbox above it.
+    // GP2-only version of chartNoteHtml: leads with the "find your best overall option"
+    // takeaway, then a smaller indented reminder of what row height/color mean, then the
+    // WADD-reveal button in the flow of the text instead of a separate checkbox above it.
     const gp2ChartNoteHtml = config.kind === "chart"
       ? `
         <div style="margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
-          <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
-            Like in <a href="#" id="julieExampleLink" style="color:inherit; text-decoration:underline; cursor:pointer">the example</a>:
-          </p>
-          <ul style="margin:0 0 10px; padding-left:1.4em; font-size:1.6em; color:var(--fg); font-weight:700; line-height:1.4">
-            <li>factors that you said were more important have thicker/taller rows</li>
-            <li>more green versus brown in a box means you rated an option higher on that factor</li>
-          </ul>
-          <p style="margin:0 0 14px; font-size:1.6em; color:var(--fg); font-weight:700">
-            Entries can be changed here or by
-            <a href="#" id="returnToEntryStepsLink" style="color:inherit; text-decoration:underline; cursor:pointer">returning to entry steps</a>.
-          </p>
           <p style="margin:0 0 14px; font-size:1.6em; color:var(--fg); font-weight:700">
             To find your <strong>BEST OVERALL</strong> option, look for the one with the most
             green under it. This will always be consistent with an optimized decision rule.
           </p>
-          <button id="showWaddBtn" type="button" style="background:transparent; border:1px solid rgba(232,238,252,0.25); color:var(--fg); border-radius:6px; padding:0.5rem 1rem; font-weight:600; cursor:pointer; font-size:1em; margin-bottom:14px">
+          <div style="margin:0 0 14px 24px; font-size:1.1em; color:var(--fg)">
+            <p style="margin:0 0 4px; font-weight:600">Reminder:</p>
+            <ul style="margin:0; padding-left:1.2em; line-height:1.3">
+              <li>factors that you said were more important have thicker/taller rows</li>
+              <li>more green versus brown in a box means you rated an option higher on that factor</li>
+            </ul>
+          </div>
+          <p style="margin:0 0 14px 24px; font-size:1.1em; color:var(--fg)">
+            The overall surface area in green under an option reflects how the optimized
+            decision rule would score the overall utility of the option for you.
+          </p>
+          <button id="showWaddBtn" type="button" style="background:transparent; border:1px solid rgba(232,238,252,0.25); color:var(--fg); border-radius:6px; padding:0.5rem 1rem; font-weight:600; cursor:pointer; font-size:1em">
             Show scores for the optimized decision rule (WADD Scores)
           </button>
-          <p style="margin:0; font-size:0.9em; color:var(--muted)">
-            This is all based on an optimized decision rule. The overall surface area in
-            green under an option reflects how a decision algorithm called the WADD
-            (weighted-additive) rule would score the overall utility of the option for you.
+        </div>
+      `
+      : "";
+
+    // GP2-only version of waddNoteHtml: shorter headline, and the WADD explanation is
+    // in the accent blue rather than muted gray.
+    const gp2WaddNoteHtml = config.kind === "chart"
+      ? `
+        <div id="waddNote" style="display:none; margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
+          <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
+            The option with the highest WADD score is best.
+          </p>
+          <p style="margin:0; font-size:0.95em; color:var(--accent)">
+            WADD stands for “weighted-additive.” WADD scores give more weight or influence
+            to factors you said were more important.
           </p>
         </div>
       `
@@ -212,7 +223,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         <div id="chartNoteWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${isGp2 ? gp2ChartNoteHtml : chartNoteHtml}</div>
         <div id="waddControlWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${showWADDControl}</div>
         <div id="waddScoresWrap" style="display:none; margin-top:12px"></div>
-        ${waddNoteHtml}
+        ${isGp2 ? gp2WaddNoteHtml : waddNoteHtml}
       </section>
     `;
 
@@ -235,10 +246,6 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     root.querySelector<HTMLButtonElement>("#replayTutorialBtn")?.addEventListener("click", () => {
       runLayoutTutorial(() => {});
     });
-    root.querySelector<HTMLAnchorElement>("#julieExampleLink")?.addEventListener("click", (event) => {
-      event.preventDefault();
-      runLayoutTutorial(() => {});
-    });
     // GP2's layout reveal is its own "page" - reached by Finish, left by this. decisionHost
     // is declared further down (it's a plain created element, not part of root.innerHTML),
     // but this closure isn't invoked until a real click, by which point it exists - same
@@ -250,10 +257,6 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       window.scrollTo(0, 0);
     };
     backToEntriesBtn?.addEventListener("click", goBackToEntries);
-    root.querySelector<HTMLAnchorElement>("#returnToEntryStepsLink")?.addEventListener("click", (event) => {
-      event.preventDefault();
-      goBackToEntries();
-    });
 
     let showWADD = waddMode === "always";
     const updateWaddVisibility = () => {
@@ -897,7 +900,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           }
           if (isGp2) {
             // The layout becomes its own "page" - the entry wizard steps out of the way
-            // until someone asks for them back (backToEntriesBtn / returnToEntryStepsLink).
+            // until someone asks for them back via backToEntriesBtn.
             wizardCard.style.display = "none";
             if (backToEntriesBtn) backToEntriesBtn.style.display = "";
           }
