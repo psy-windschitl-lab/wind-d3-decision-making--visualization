@@ -143,7 +143,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           <ul style="margin:0 0 14px 24px; padding-left:1.2em; font-size:1.1em; color:var(--fg); line-height:1.3">
             <li>Factors that you said were more important have thicker/taller rows</li>
             <li>More green versus brown in a box means you rated an option higher on that factor</li>
-            <li>The overall surface area in green under an option reflects how the optimized decision rule would score the overall utility of the option for you.</li>
+            <li>The overall amount of green under an option matches how the optimized decision rule would score the overall utility of the option for you.</li>
           </ul>
           <button id="showWaddBtn" type="button" style="background:transparent; border:1px solid rgba(232,238,252,0.25); color:var(--fg); border-radius:6px; padding:0.5rem 1rem; font-weight:600; cursor:pointer; font-size:1em">
             Show scores for the optimized decision rule (WADD Scores)
