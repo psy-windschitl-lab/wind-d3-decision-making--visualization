@@ -248,6 +248,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       wizardCard.style.display = "";
       previewCard.style.display = "none";
       decisionHost.style.display = "none";
+      if (decisionIntroNote) decisionIntroNote.style.display = "none";
       window.scrollTo(0, 0);
     };
     backToEntriesBtn?.addEventListener("click", goBackToEntries);
@@ -900,6 +901,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           }
           updateWaddVisibility();
           decisionHost.style.display = "";
+          if (decisionIntroNote) decisionIntroNote.style.display = "";
           renderPreview(true);
           window.scrollTo(0, 0);
         };
@@ -1089,6 +1091,19 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
       table.appendChild(tbody);
       vizEl.appendChild(table);
+    }
+
+    // GP2 only: a short pointer sitting right above the decision button, since the
+    // entries are no longer directly below it once the layout became its own "page".
+    const decisionIntroNote = isGp2 ? document.createElement("p") : null;
+    if (decisionIntroNote) {
+      decisionIntroNote.textContent = "Click below to make decision. You can also modify your entries (see above).";
+      decisionIntroNote.style.margin = "16px 0 0";
+      decisionIntroNote.style.color = "var(--muted)";
+      if (config.restrictPreviewUntilFinish ? !reachedFinish : !finished) {
+        decisionIntroNote.style.display = "none";
+      }
+      root.appendChild(decisionIntroNote);
     }
 
     const decisionHost = document.createElement("div");

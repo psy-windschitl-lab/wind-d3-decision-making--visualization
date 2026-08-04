@@ -90,7 +90,10 @@ function openOverlay(title: string, bodyHtml: string, actionsHtml: string, wire:
 function showAboutOverlay() {
   openOverlay(
     "About",
-    `<p>Framework-free, TypeScript-first, D3-powered decision visualization.</p>`,
+    `
+      <p>Framework-free, TypeScript-first, D3-powered decision-visualization app.</p>
+      <p>Works only on desktops/laptops, not cell phones.</p>
+    `,
     `<button id="aboutReturnBtn" class="modal-btn">Return to your decision</button>`,
     (dialog) => {
       dialog.querySelector<HTMLButtonElement>("#aboutReturnBtn")!.onclick = () => {

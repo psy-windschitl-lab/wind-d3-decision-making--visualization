@@ -314,11 +314,17 @@ export function runLayoutTutorial(onComplete: () => void): void {
   // the box's own top-to-bottom edges - to make the row's height unmistakable wherever
   // someone happens to be looking.
   const ROW_HEIGHT_ARROW_COUNT = 4;
-  function drawHeightArrows(boxLeft: number, boxTop: number, boxWidth: number, boxHeight: number) {
+  function drawHeightArrows(boxLeft: number, boxTop: number, boxWidth: number, boxHeight: number, rowLabelRight: number) {
     const h = Math.max(8, boxHeight);
     for (let i = 0; i < ROW_HEIGHT_ARROW_COUNT; i++) {
       const frac = (i + 0.5) / ROW_HEIGHT_ARROW_COUNT;
-      const x = boxLeft + boxWidth * frac - 12; // center the 24px-wide glyph on this point
+      let x = boxLeft + boxWidth * frac - 12; // center the 24px-wide glyph on this point
+      if (i === 0) {
+        // The leftmost slot's default position can land on top of the row label's own
+        // text ("Factor: Air Conditioning" / "Factor: Location") since the label column
+        // is wide - nudge it to just clear the label box instead.
+        x = Math.max(x, rowLabelRight + 4);
+      }
       drawSingleHeightArrow(x, boxTop, h);
     }
   }
@@ -335,7 +341,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
 
     let rect: DOMRect | null = null;
     let isCell = false;
-    let isRow = false;
+    let rowLabelRight: number | null = null;
     const PAD = 8;
 
     if (target.type === "optionHeaders" && cols.length) {
@@ -349,7 +355,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
       const lastCellRect = visibleRect(cells[target.index * numOptions + numOptions - 1], "rect.cell-bg");
       if (rowRect && lastCellRect) {
         rect = unionRect([rowRect, lastCellRect]);
-        isRow = true;
+        rowLabelRight = Math.round(rowRect.right - hostRect.left);
       }
     } else if (target.type === "cell") {
       const cellRect = visibleRect(cells[target.index], "rect.cell-bg");
@@ -377,7 +383,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
     box.style.height = `${boxHeight}px`;
     annotationLayer.appendChild(box);
 
-    if (isRow) drawHeightArrows(boxLeft, boxTop, boxWidth, boxHeight);
+    if (rowLabelRight !== null) drawHeightArrows(boxLeft, boxTop, boxWidth, boxHeight, rowLabelRight);
   }
 
   function updateDots() {
