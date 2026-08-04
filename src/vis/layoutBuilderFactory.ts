@@ -466,7 +466,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep1() {
       stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 1--Naming the options</h2>
+        <h2 class="h1" style="font-size:1.2rem">Step 1--Name the options</h2>
         <div style="height:24px"></div>
         <p style="color:var(--muted); margin:0 0 4px; font-size:1.5em; line-height:1.3">
           Enter one word or short phrase that describes what you are deciding about

@@ -59,6 +59,7 @@ export function renderIntroPanel(
     section.innerHTML = `
       <h1 class="h1">${variant.title}</h1>
       ${variant.body}
+      <p>&nbsp;</p>
       <div style="display:flex; gap:.5rem; margin-top:16px; flex-wrap:wrap">
         <button id="introContinueBtn" style="padding:.5rem .8rem; border-radius:.5rem; border:none; background:var(--accent); color:white">
           ${introKey === "intro1"
