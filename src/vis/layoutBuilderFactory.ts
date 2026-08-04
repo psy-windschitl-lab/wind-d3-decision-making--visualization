@@ -923,11 +923,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     // GP2 with wadd=on skips the "Show scores" button entirely (scores are always
     // visible), so its label spells out what they are instead of assuming the button's
-    // wording already explained it.
-    const WADD_SCORES_LABEL_TEXT = isGp2 && waddMode === "always"
-      ? "Scores for Optimized Decision Rule (WADD Scores)"
+    // wording already explained it. Short enough to afford a slightly larger font than
+    // the plain "WADD Scores" label used everywhere else.
+    const waddScoresLabelIsLong = isGp2 && waddMode === "always";
+    const WADD_SCORES_LABEL_TEXT = waddScoresLabelIsLong
+      ? "WADD Scores (from optimized decision rule)"
       : "WADD Scores";
-    const WADD_SCORES_LABEL_HTML = `<div style="font-size:0.9em; color:var(--muted); font-weight:600">${WADD_SCORES_LABEL_TEXT}</div>`;
+    const WADD_SCORES_LABEL_HTML = `<div style="font-size:${waddScoresLabelIsLong ? "1em" : "0.9em"}; color:var(--muted); font-weight:600">${WADD_SCORES_LABEL_TEXT}</div>`;
 
     function renderWaddScoresBlockFallback(data: ReturnType<typeof toChartData>) {
       const waddScores = computeWaddScores(data.options, data.factors, data.scores);

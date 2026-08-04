@@ -42,6 +42,11 @@ const EX_LIKERT: Record<string, Record<string, number>> = {
 };
 const toSigned = (v: number) => (v - 3) / 2;
 
+// Matches the height DecisionLayoutChart is given in ensureChart() below. Fixed and known
+// up front (EX_FACTORS never changes at runtime) so it can also be used to reserve the
+// chart's final space before the chart itself is ever built - see chartHost's minHeight.
+const EXAMPLE_CHART_HEIGHT = EX_FACTORS.length * (90 + 8) + 92 + 32;
+
 // Cell index within DecisionLayoutChart's own row-major cell order (factorIndex * numOptions + optionIndex).
 const CELL = {
   acElm: 0 * EX_OPTIONS.length + 0,
@@ -169,6 +174,10 @@ export function runLayoutTutorial(onComplete: () => void): void {
   chartArea.style.display = "none";
   const chartHost = document.createElement("div");
   chartHost.className = "tutorial-chart-host";
+  // Reserved up front (before the chart itself is ever built) so chartHost already
+  // occupies its final height while it's still invisible during the cartoon step's
+  // 650ms delay - see the "cartoon" branch in showStep for why that matters.
+  chartHost.style.minHeight = `${EXAMPLE_CHART_HEIGHT}px`;
   const annotationLayer = document.createElement("div");
   annotationLayer.className = "tutorial-annotation-layer";
   // annotationLayer must be a child of chartHost, not a sibling under chartArea - an
@@ -228,10 +237,9 @@ export function runLayoutTutorial(onComplete: () => void): void {
     // width, or chartHost.clientWidth reads as 0 and the chart falls back to a width
     // that doesn't match its actual box - which is what was cutting the right edge off.
     const width = Math.max(360, chartHost.clientWidth || 640);
-    const height = EX_FACTORS.length * (90 + 8) + 92 + 32;
     chart = new DecisionLayoutChart(chartHost, {
       width,
-      height,
+      height: EXAMPLE_CHART_HEIGHT,
       showAddControls: false,
       showIdentifierPrefix: true,
       allowImportanceDrag: false,
@@ -442,16 +450,20 @@ export function runLayoutTutorial(onComplete: () => void): void {
     } else if (step.kind === "cartoon") {
       cartoonHost.style.display = "";
       clearAnnotations();
+      // chartArea stays laid out (display != "none") for this whole step, even before the
+      // chart itself is built - chartHost's reserved minHeight means there's no visible
+      // gap while it's invisible (opacity 0, the default before "--show" is added).
+      // Toggling display here (as this used to) let the modal's height jump once the
+      // chart appeared, and since .modal-overlay vertically centers the card, that jump
+      // visibly re-centered it - Julie included - momentarily in the wrong spot.
+      chartArea.style.display = "";
       if (chart) {
         // Already built (e.g. navigating back to this step) - show immediately.
-        chartArea.style.display = "";
         chartArea.classList.add("tutorial-chart-area--show");
       } else {
         chartArea.classList.remove("tutorial-chart-area--show");
-        chartArea.style.display = "none";
         cartoonTimer = window.setTimeout(() => {
           if (stepIndex !== index) return;
-          chartArea.style.display = "";
           ensureChart();
           requestAnimationFrame(() => chartArea.classList.add("tutorial-chart-area--show"));
         }, 650);
