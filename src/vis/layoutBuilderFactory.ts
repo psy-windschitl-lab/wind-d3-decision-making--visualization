@@ -710,7 +710,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function renderStep4() {
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 4--Rate options on each factor</h2>
-        <p style="color:var(--muted); margin:10px 0 16px; font-size:1.5em; line-height:1.3">Now, you'll rate each option on each factor, using this scale.</p>
+        <p style="color:var(--muted); margin:10px 0 16px; font-size:1.5em; line-height:1.3">Now you'll be asked to rate options based on how good or bad they are on a given factor. Please use this scale.</p>
         <div style="display:flex; justify-content:center">
           <svg viewBox="0 0 700 210" width="100%" style="max-width:640px; overflow:visible">
             <g font-family="inherit">
@@ -764,7 +764,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const instr1 = document.createElement("p");
         instr1.style.margin = "0 0 14px";
         instr1.style.color = "var(--muted)";
-        instr1.innerHTML = `You’ll need to rate each option <u>on this factor</u>.`;
+        instr1.innerHTML = `For this factor, rate each option.`;
 
         block.append(considerLine, bigFactor, instr1);
 
