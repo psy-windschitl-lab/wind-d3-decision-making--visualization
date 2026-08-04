@@ -63,7 +63,7 @@ const STEPS: Step[] = [
   {
     kind: "highlight",
     target: { type: "optionHeaders" },
-    text: "She had entered three options.",
+    text: "She entered three options.",
     buttonLabel: "Next",
   },
   {
@@ -310,21 +310,22 @@ export function runLayoutTutorial(onComplete: () => void): void {
   }
 
   // A single arrow off to the side is easy to miss against a whole highlighted row, so
-  // repeat it at evenly-spaced points across the full width of the yellow box - spanning
-  // the box's own top-to-bottom edges - to make the row's height unmistakable wherever
-  // someone happens to be looking.
-  const ROW_HEIGHT_ARROW_COUNT = 4;
-  function drawHeightArrows(boxLeft: number, boxTop: number, boxWidth: number, boxHeight: number, rowLabelRight: number) {
+  // repeat it at several points across the yellow box - spanning the box's own
+  // top-to-bottom edges - to make the row's height unmistakable wherever someone happens
+  // to be looking. Two of those sit inside the row label's own blue box (10% in from
+  // each edge, clearing the label text in the middle), the rest evenly across the cells.
+  const ROW_HEIGHT_ARROW_CELL_COUNT = 3;
+  function drawHeightArrows(boxTop: number, boxHeight: number, labelLeft: number, labelRight: number, cellsRight: number) {
     const h = Math.max(8, boxHeight);
-    for (let i = 0; i < ROW_HEIGHT_ARROW_COUNT; i++) {
-      const frac = (i + 0.5) / ROW_HEIGHT_ARROW_COUNT;
-      let x = boxLeft + boxWidth * frac - 12; // center the 24px-wide glyph on this point
-      if (i === 0) {
-        // The leftmost slot's default position can land on top of the row label's own
-        // text ("Factor: Air Conditioning" / "Factor: Location") since the label column
-        // is wide - nudge it to just clear the label box instead.
-        x = Math.max(x, rowLabelRight + 4);
-      }
+    const labelWidth = labelRight - labelLeft;
+    drawSingleHeightArrow(labelLeft + labelWidth * 0.10 - 12, boxTop, h);
+    drawSingleHeightArrow(labelLeft + labelWidth * 0.90 - 12, boxTop, h);
+
+    const cellsLeft = labelRight;
+    const cellsWidth = cellsRight - cellsLeft;
+    for (let i = 0; i < ROW_HEIGHT_ARROW_CELL_COUNT; i++) {
+      const frac = (i + 0.5) / ROW_HEIGHT_ARROW_CELL_COUNT;
+      const x = cellsLeft + cellsWidth * frac - 12; // center the 24px-wide glyph on this point
       drawSingleHeightArrow(x, boxTop, h);
     }
   }
@@ -341,7 +342,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
 
     let rect: DOMRect | null = null;
     let isCell = false;
-    let rowLabelRight: number | null = null;
+    let rowLabelBounds: { left: number; right: number } | null = null;
     const PAD = 8;
 
     if (target.type === "optionHeaders" && cols.length) {
@@ -355,7 +356,10 @@ export function runLayoutTutorial(onComplete: () => void): void {
       const lastCellRect = visibleRect(cells[target.index * numOptions + numOptions - 1], "rect.cell-bg");
       if (rowRect && lastCellRect) {
         rect = unionRect([rowRect, lastCellRect]);
-        rowLabelRight = Math.round(rowRect.right - hostRect.left);
+        rowLabelBounds = {
+          left: Math.round(rowRect.left - hostRect.left),
+          right: Math.round(rowRect.right - hostRect.left),
+        };
       }
     } else if (target.type === "cell") {
       const cellRect = visibleRect(cells[target.index], "rect.cell-bg");
@@ -383,7 +387,9 @@ export function runLayoutTutorial(onComplete: () => void): void {
     box.style.height = `${boxHeight}px`;
     annotationLayer.appendChild(box);
 
-    if (rowLabelRight !== null) drawHeightArrows(boxLeft, boxTop, boxWidth, boxHeight, rowLabelRight);
+    if (rowLabelBounds) {
+      drawHeightArrows(boxTop, boxHeight, rowLabelBounds.left, rowLabelBounds.right, boxLeft + boxWidth);
+    }
   }
 
   function updateDots() {
