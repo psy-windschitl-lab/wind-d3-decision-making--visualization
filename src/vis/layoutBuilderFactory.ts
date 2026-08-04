@@ -661,14 +661,15 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const nameSpan = document.createElement("span");
         nameSpan.style.color = "var(--fg)";
         nameSpan.style.fontWeight = "700";
-        nameSpan.style.fontSize = "1.3em";
+        nameSpan.style.fontSize = "2.2em";
         nameSpan.textContent = fac.label;
         row.append(prefixText, nameSpan);
 
         const ratingLabel = document.createElement("p");
         ratingLabel.style.color = "var(--muted)";
         ratingLabel.style.margin = "2px 0 0 20px";
-        ratingLabel.textContent = "Rate the importance of this factor for your decision";
+        ratingLabel.style.fontSize = "1.3em";
+        ratingLabel.textContent = "Rate the importance of this factor for your decision.";
 
         const group = document.createElement("div");
         group.className = "importance-group";
