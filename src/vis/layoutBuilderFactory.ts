@@ -919,7 +919,9 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       window.scrollTo(0, 0);
     };
 
-    function renderWaddScoresBlockFallback(data: ReturnType<typeof toChartData>, labelHtml: string) {
+    const WADD_SCORES_LABEL_HTML = `<div style="font-size:0.9em; color:var(--muted); font-weight:600; white-space:nowrap">WADD Scores</div>`;
+
+    function renderWaddScoresBlockFallback(data: ReturnType<typeof toChartData>) {
       const waddScores = computeWaddScores(data.options, data.factors, data.scores);
       const itemsHtml = data.options.map(o => `
         <div style="text-align:center">
@@ -927,17 +929,19 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           <div style="font-size:1.4em; font-weight:700; color:var(--fg)">${Math.round(waddScores[o.id])}</div>
         </div>
       `).join("");
-      waddScoresWrap.innerHTML = `${labelHtml}<div style="display:flex; gap:24px; flex-wrap:wrap; justify-content:space-around">${itemsHtml}</div>`;
+      waddScoresWrap.innerHTML = `
+        <div style="display:flex; align-items:center; gap:24px">
+          ${WADD_SCORES_LABEL_HTML}
+          <div style="display:flex; gap:24px; flex-wrap:wrap; justify-content:space-around; flex:1">${itemsHtml}</div>
+        </div>
+      `;
     }
 
     function renderWaddScoresBlock(data: ReturnType<typeof toChartData>) {
       if (!supportsWADD) return;
-      const labelHtml = waddMode === "always"
-        ? `<h3 class="h1" style="font-size:1rem; margin:0 0 8px">WADD Scores</h3>`
-        : "";
 
       if (config.kind !== "chart") {
-        renderWaddScoresBlockFallback(data, labelHtml);
+        renderWaddScoresBlockFallback(data);
         return;
       }
 
@@ -950,7 +954,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         const waddScores = computeWaddScores(data.options, data.factors, data.scores);
         const headerRects = Array.from(vizEl.querySelectorAll<SVGGraphicsElement>(".dl-cols > g.col rect.header-bg"));
         if (headerRects.length !== data.options.length || headerRects.length === 0) {
-          renderWaddScoresBlockFallback(data, labelHtml);
+          renderWaddScoresBlockFallback(data);
           return;
         }
         const vizRect = vizEl.getBoundingClientRect();
@@ -965,7 +969,15 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             </div>
           `;
         }).join("");
-        waddScoresWrap.innerHTML = `${labelHtml}<div style="position:relative; height:3.2em">${itemsHtml}</div>`;
+        // The label sits at the row's far left (x:0, matching vizEl's own left edge -
+        // waddScoresWrap and vizEl share the same left offset within the card), vertically
+        // centered against the same 3.2em row height as the scores themselves.
+        waddScoresWrap.innerHTML = `
+          <div style="position:relative; height:3.2em">
+            <div style="position:absolute; left:0; top:0; height:100%; display:flex; align-items:center">${WADD_SCORES_LABEL_HTML}</div>
+            ${itemsHtml}
+          </div>
+        `;
       }, 200);
     }
 
