@@ -766,22 +766,28 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
         const row = document.createElement("div");
         row.style.display = "flex";
-        row.style.gap = "48px";
+        row.style.gap = "36px";
         row.style.flexWrap = "wrap";
 
         for (let oIdx = 0; oIdx < state.options.length; oIdx++) {
           const o = state.options[oIdx];
           const cell = document.createElement("div");
-          cell.style.width = "150px";
-          cell.style.flex = "0 0 150px";
+          cell.style.width = "180px";
+          cell.style.flex = "0 0 180px";
 
           const question = document.createElement("p");
-          question.style.fontSize = "0.85em";
+          question.style.fontSize = "1.05em";
           question.style.color = "var(--muted)";
           question.style.margin = "0 0 8px";
           question.style.textAlign = "center";
-          const prefix = document.createTextNode(`On this factor, what’s your rating of Option ${o.identifier}`);
-          question.append(prefix);
+          question.append(
+            document.createTextNode("On this factor,"),
+            document.createElement("br"),
+            document.createTextNode("what’s your rating of"),
+            document.createElement("br")
+          );
+          const optionLine = document.createTextNode(`Option ${o.identifier}`);
+          question.append(optionLine);
           if (o.label.trim()) {
             const openParen = document.createTextNode(" (");
             const nameSpan = document.createElement("span");
