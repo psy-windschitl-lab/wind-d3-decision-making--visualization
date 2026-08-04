@@ -145,9 +145,11 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             <li>More green versus brown in a box means you rated an option higher on that factor</li>
             <li>The overall amount of green under an option matches how the optimized decision rule would score the overall utility of the option for you.</li>
           </ul>
+          ${waddMode === "always" ? "" : `
           <button id="showWaddBtn" type="button" style="background:transparent; border:1px solid rgba(232,238,252,0.25); color:var(--fg); border-radius:6px; padding:0.5rem 1rem; font-weight:600; cursor:pointer; font-size:1em">
             Show scores for the optimized decision rule (WADD Scores)
           </button>
+          `}
         </div>
       `
       : "";
@@ -919,7 +921,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       window.scrollTo(0, 0);
     };
 
-    const WADD_SCORES_LABEL_HTML = `<div style="font-size:0.9em; color:var(--muted); font-weight:600; white-space:nowrap">WADD Scores</div>`;
+    // GP2 with wadd=on skips the "Show scores" button entirely (scores are always
+    // visible), so its label spells out what they are instead of assuming the button's
+    // wording already explained it.
+    const WADD_SCORES_LABEL_TEXT = isGp2 && waddMode === "always"
+      ? "Scores for Optimized Decision Rule (WADD Scores)"
+      : "WADD Scores";
+    const WADD_SCORES_LABEL_HTML = `<div style="font-size:0.9em; color:var(--muted); font-weight:600">${WADD_SCORES_LABEL_TEXT}</div>`;
 
     function renderWaddScoresBlockFallback(data: ReturnType<typeof toChartData>) {
       const waddScores = computeWaddScores(data.options, data.factors, data.scores);
@@ -931,7 +939,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       `).join("");
       waddScoresWrap.innerHTML = `
         <div style="display:flex; align-items:center; gap:24px">
-          ${WADD_SCORES_LABEL_HTML}
+          <div style="flex:0 0 180px">${WADD_SCORES_LABEL_HTML}</div>
           <div style="display:flex; gap:24px; flex-wrap:wrap; justify-content:space-around; flex:1">${itemsHtml}</div>
         </div>
       `;
@@ -970,11 +978,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           `;
         }).join("");
         // The label sits at the row's far left (x:0, matching vizEl's own left edge -
-        // waddScoresWrap and vizEl share the same left offset within the card), vertically
-        // centered against the same 3.2em row height as the scores themselves.
+        // waddScoresWrap and vizEl share the same left offset within the card). Its width
+        // is capped to the gutter before the first option column, so a long label (e.g.
+        // "Scores for Optimized Decision Rule (WADD Scores)") wraps instead of running
+        // into that column's score.
+        const firstColLeft = Math.round(headerRects[0].getBoundingClientRect().left - vizRect.left);
         waddScoresWrap.innerHTML = `
-          <div style="position:relative; height:3.2em">
-            <div style="position:absolute; left:0; top:0; height:100%; display:flex; align-items:center">${WADD_SCORES_LABEL_HTML}</div>
+          <div style="position:relative; min-height:3.2em">
+            <div style="position:absolute; left:0; top:0; width:${Math.max(0, firstColLeft - 8)}px; display:flex; align-items:center; min-height:3.2em">${WADD_SCORES_LABEL_HTML}</div>
             ${itemsHtml}
           </div>
         `;
