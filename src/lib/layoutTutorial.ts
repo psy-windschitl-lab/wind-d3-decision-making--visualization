@@ -69,7 +69,7 @@ const STEPS: Step[] = [
   {
     kind: "highlight",
     target: { type: "factorLabels" },
-    text: "\u2026and three factors.",
+    text: "She entered three factors.",
     buttonLabel: "Next",
   },
   {
@@ -121,7 +121,7 @@ const CARTOON_SVG = `
     <text x="169" y="70" text-anchor="middle" font-size="30" font-weight="700" fill="#2f64b7">?</text>
     <rect x="55" y="150" width="70" height="45" rx="18" fill="#2f64b7"></rect>
     <circle cx="90" cy="120" r="38" fill="#e8b58c"></circle>
-    <path d="M55 110 Q60 70 90 72 Q120 70 125 110 Q120 92 90 92 Q60 92 55 110 Z" fill="#5b3a29"></path>
+    <path d="M52 122 Q50 145 60 152 Q54 130 58 108 Q60 70 90 72 Q120 70 122 108 Q126 130 120 152 Q130 145 128 122 Q128 92 90 92 Q52 92 52 122 Z" fill="#5b3a29"></path>
     <circle cx="78" cy="122" r="3.5" fill="#22293f"></circle>
     <circle cx="102" cy="122" r="3.5" fill="#22293f"></circle>
     <line x1="80" y1="136" x2="100" y2="136" stroke="#22293f" stroke-width="2.5" stroke-linecap="round"></line>
