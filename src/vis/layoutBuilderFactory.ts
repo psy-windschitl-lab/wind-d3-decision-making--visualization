@@ -140,17 +140,11 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             To find your <strong>BEST OVERALL</strong> option, look for the one with the most
             green under it. This will always be consistent with an optimized decision rule.
           </p>
-          <div style="margin:0 0 14px 24px; font-size:1.1em; color:var(--fg)">
-            <p style="margin:0 0 4px; font-weight:600">Reminder:</p>
-            <ul style="margin:0; padding-left:1.2em; line-height:1.3">
-              <li>factors that you said were more important have thicker/taller rows</li>
-              <li>more green versus brown in a box means you rated an option higher on that factor</li>
-            </ul>
-          </div>
-          <p style="margin:0 0 14px 24px; font-size:1.1em; color:var(--fg)">
-            The overall surface area in green under an option reflects how the optimized
-            decision rule would score the overall utility of the option for you.
-          </p>
+          <ul style="margin:0 0 14px 24px; padding-left:1.2em; font-size:1.1em; color:var(--fg); line-height:1.3">
+            <li>Factors that you said were more important have thicker/taller rows</li>
+            <li>More green versus brown in a box means you rated an option higher on that factor</li>
+            <li>The overall surface area in green under an option reflects how the optimized decision rule would score the overall utility of the option for you.</li>
+          </ul>
           <button id="showWaddBtn" type="button" style="background:transparent; border:1px solid rgba(232,238,252,0.25); color:var(--fg); border-radius:6px; padding:0.5rem 1rem; font-weight:600; cursor:pointer; font-size:1em">
             Show scores for the optimized decision rule (WADD Scores)
           </button>
@@ -158,15 +152,15 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       `
       : "";
 
-    // GP2-only version of waddNoteHtml: shorter headline, and the WADD explanation is
-    // in the accent blue rather than muted gray.
+    // GP2-only version of waddNoteHtml: shorter headline, and the WADD explanation reuses
+    // the same indent/size/color as the bullets above (gp2ChartNoteHtml) for consistency.
     const gp2WaddNoteHtml = config.kind === "chart"
       ? `
         <div id="waddNote" style="display:none; margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
           <p style="margin:0 0 10px; font-size:1.6em; color:var(--fg); font-weight:700">
             The option with the highest WADD score is best.
           </p>
-          <p style="margin:0; font-size:0.95em; color:var(--accent)">
+          <p style="margin:0 0 0 24px; font-size:1.1em; color:var(--fg)">
             WADD stands for “weighted-additive.” WADD scores give more weight or influence
             to factors you said were more important.
           </p>
@@ -639,7 +633,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function renderStep2Importance() {
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 3--Rate factor importance</h2>
-        <p style="color:var(--muted); margin-top:4px; font-size:1.5em; line-height:1.3">&nbsp;<br>&nbsp;</p>
+        <div style="margin-top:4px; height:34px"></div>
         <div id="factorsImportance"></div>
       `;
       const container = stepHost.querySelector<HTMLDivElement>("#factorsImportance")!;
@@ -713,7 +707,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function renderStep4() {
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 4--Rate options on each factor</h2>
-        <p style="color:var(--muted); margin:10px 0 16px; font-size:1.5em; line-height:1.3">Now you'll be asked to rate options based on how good or bad they are on a given factor. Please use this scale.</p>
+        <p style="color:var(--muted); margin:10px 0 16px; font-size:1.5em; line-height:1.3">Now you'll rate options based on how good or bad they are on a given factor. Please use this scale.</p>
         <div style="display:flex; justify-content:center">
           <svg viewBox="0 0 700 210" width="100%" style="max-width:640px; overflow:visible">
             <g font-family="inherit">
