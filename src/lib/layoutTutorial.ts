@@ -11,7 +11,7 @@ type HighlightTarget =
   | { type: "optionHeaders" }
   | { type: "factorLabels" }
   | { type: "row"; index: number }
-  | { type: "cell"; index: number };
+  | { type: "cell"; index: number; boxy?: boolean };
 
 // What the example chart should look like for a given step: whether the factor rows
 // have been introduced yet (vs. just the option headers on their own), and which cells
@@ -133,7 +133,7 @@ const STEPS: Step[] = [
   {
     kind: "chart",
     chartState: AC_ELM_MAIN_LOC_ELM,
-    target: { type: "cell", index: CELL.locationElm },
+    target: { type: "cell", index: CELL.locationElm, boxy: true },
     text: "She rated the <strong><em>Location</em></strong> of the Elm St apartment as <strong><em>Okay</em></strong>, so we'll color that box as half green.",
     buttonLabel: "Next",
   },
@@ -416,7 +416,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
       const cellRect = visibleRect(cells[target.index], "rect.cell-bg");
       if (cellRect) {
         rect = cellRect;
-        isCell = true;
+        isCell = !target.boxy;
       }
     }
 
