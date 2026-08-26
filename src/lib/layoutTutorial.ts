@@ -134,7 +134,7 @@ const STEPS: Step[] = [
     kind: "chart",
     chartState: AC_ELM_MAIN_LOC_ELM,
     target: { type: "cell", index: CELL.locationElm },
-    text: "She rated the <strong><em>Location</em></strong> of the Elm St apartment as <strong><em>okay</em></strong>, so we'll color that box as half green.",
+    text: "She rated the <strong><em>Location</em></strong> of the Elm St apartment as <strong><em>Okay</em></strong>, so we'll color that box as half green.",
     buttonLabel: "Next",
   },
   {
