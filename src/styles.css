@@ -109,6 +109,7 @@ rect[fill="transparent"]:hover { fill: var(--accent); opacity: 0.2; }
 .tutorial-highlight { position: absolute; border: 3px solid #ffd400; border-radius: 14px; background: rgba(255,212,0,0.07); box-shadow: 0 0 0 4px rgba(255,212,0,0.16), 0 0 18px rgba(255,212,0,0.35); animation: tutorialPulse 1.4s ease-in-out infinite; transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease; }
 .tutorial-highlight::before { content: ""; position: absolute; left: -9px; top: -9px; width: 16px; height: 16px; border-radius: 50%; background: #ffd400; box-shadow: 0 0 8px rgba(255,212,0,0.8); }
 .tutorial-highlight--oval { border-radius: 999px; }
+.tutorial-col-mark { position: absolute; color: #ffd400; font-weight: 800; font-size: 1.5rem; text-align: center; text-shadow: 0 0 8px rgba(255,212,0,0.6); }
 .tutorial-height-arrow { position: absolute; overflow: visible; filter: drop-shadow(0 0 4px rgba(255,212,0,0.6)); }
 .tutorial-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; gap: 12px; }
 .tutorial-back { background: transparent; border: 1px solid rgba(232,238,252,0.25); color: var(--fg); border-radius: 8px; padding: 0.55rem 1rem; font-weight: 600; cursor: pointer; }

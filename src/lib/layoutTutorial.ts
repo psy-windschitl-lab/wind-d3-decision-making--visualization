@@ -11,7 +11,11 @@ type HighlightTarget =
   | { type: "optionHeaders" }
   | { type: "factorLabels" }
   | { type: "row"; index: number }
-  | { type: "cell"; index: number; boxy?: boolean };
+  | { type: "cell"; index: number; boxy?: boolean }
+  // The full column of score cells under a single option (all factor rows for that
+  // option), drawn once per option side by side - unlike the other targets, this one
+  // produces several highlight boxes (with a "?" beneath each) instead of just one.
+  | { type: "optionColumns" };
 
 // What the example chart should look like for a given step: whether the factor rows
 // have been introduced yet (vs. just the option headers on their own), and which cells
@@ -36,8 +40,8 @@ type Step =
 // (Elm/Oak/Main Street) and 3 factors (Air Conditioning, Location, Price). Location is
 // High importance (tall row), Air Conditioning is Low importance (thin row).
 // Likert 1-5 maps to an exact 0/25/50/75/100% green fill, so these values were chosen to
-// land on the specific fills called out in the walkthrough (2 = mostly brown, 4 = mostly
-// green).
+// land on the specific fills called out in the walkthrough (2 = mostly brown, 3 = half
+// green/half brown, 4 = mostly green).
 const EX_FACTORS = [
   { id: "ac", label: "Air Conditioning", weight: 1 },
   { id: "location", label: "Location", weight: 4 },
@@ -51,7 +55,7 @@ const EX_OPTIONS = [
 const EX_LIKERT: Record<string, Record<string, number>> = {
   ac: { elm: 4, oak: 4, main: 2 },
   location: { elm: 3, oak: 2, main: 3 },
-  price: { elm: 2, oak: 4, main: 4 },
+  price: { elm: 2, oak: 3, main: 4 },
 };
 const toSigned = (v: number) => (v - 3) / 2;
 
@@ -141,7 +145,14 @@ const STEPS: Step[] = [
     kind: "chart",
     chartState: ALL_REVEALED,
     target: { type: "none" },
-    text: "Here is how the full layout looks with all the boxes colored in.<br><br>To find Julie\u2019s <strong>BEST OVERALL</strong> option, you simply find the one with the most green under it.<br><br>This will always be consistent with an optimized decision rule (involving scores that give more weight to evaluations on subjectively important factors).",
+    text: "Here is how the full layout looks with all the boxes colored in.",
+    buttonLabel: "Next",
+  },
+  {
+    kind: "chart",
+    chartState: ALL_REVEALED,
+    target: { type: "optionColumns" },
+    text: "To find Julie\u2019s <strong>BEST OVERALL</strong> option, you simply find the one with the most green under it. In other words, is there more green under Option A or B or C?<br><br>This will always be consistent with an optimized decision rule (involving scores that give more weight to evaluations on subjectively important factors).",
     buttonLabel: "Next",
     captionPosition: "below",
   },
@@ -381,6 +392,32 @@ export function runLayoutTutorial(onComplete: () => void): void {
     }
   }
 
+  // Draws one boxy yellow highlight (never the oval cell style) with a centered "?"
+  // beneath it - used for each option's full column of score cells at once, so someone
+  // can visually compare "how much green" sits under Option A vs. B vs. C.
+  function drawOptionColumnMark(rect: DOMRect, hostRect: DOMRect, pad: number) {
+    const boxLeft = Math.round(rect.left - hostRect.left - pad);
+    const boxTop = Math.round(rect.top - hostRect.top - pad);
+    const boxWidth = Math.round(rect.width + pad * 2);
+    const boxHeight = Math.round(rect.height + pad * 2);
+
+    const box = document.createElement("div");
+    box.className = "tutorial-highlight";
+    box.style.left = `${boxLeft}px`;
+    box.style.top = `${boxTop}px`;
+    box.style.width = `${boxWidth}px`;
+    box.style.height = `${boxHeight}px`;
+    annotationLayer.appendChild(box);
+
+    const mark = document.createElement("div");
+    mark.className = "tutorial-col-mark";
+    mark.textContent = "?";
+    mark.style.left = `${boxLeft}px`;
+    mark.style.top = `${boxTop + boxHeight + 6}px`;
+    mark.style.width = `${boxWidth}px`;
+    annotationLayer.appendChild(mark);
+  }
+
   function drawHighlight(target: HighlightTarget) {
     clearAnnotations();
     const hostRect = chartHost.getBoundingClientRect();
@@ -388,13 +425,26 @@ export function runLayoutTutorial(onComplete: () => void): void {
     const rows = Array.from(chartHost.querySelectorAll<SVGGElement>(".dl-rows > g.row"));
     const cells = Array.from(chartHost.querySelectorAll<SVGGElement>(".dl-grid > g.cell"));
     const numOptions = EX_OPTIONS.length;
+    const numFactors = EX_FACTORS.length;
+    const PAD = 8;
 
     if (target.type === "none") return;
+
+    if (target.type === "optionColumns") {
+      for (let cidx = 0; cidx < numOptions; cidx++) {
+        const colCellRects: DOMRect[] = [];
+        for (let ridx = 0; ridx < numFactors; ridx++) {
+          const r = visibleRect(cells[ridx * numOptions + cidx], "rect.cell-bg");
+          if (r) colCellRects.push(r);
+        }
+        if (colCellRects.length) drawOptionColumnMark(unionRect(colCellRects), hostRect, PAD);
+      }
+      return;
+    }
 
     let rect: DOMRect | null = null;
     let isCell = false;
     let rowLabelBounds: { left: number; right: number } | null = null;
-    const PAD = 8;
 
     if (target.type === "optionHeaders" && cols.length) {
       const rects = cols.map(el => visibleRect(el, "rect.header-bg")).filter((r): r is DOMRect => !!r);
