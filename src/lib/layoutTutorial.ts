@@ -152,7 +152,7 @@ const STEPS: Step[] = [
     kind: "chart",
     chartState: ALL_REVEALED,
     target: { type: "optionColumns" },
-    text: "To find Julie\u2019s <strong>BEST OVERALL</strong> option, you simply find the one with the most green under it. Here, we can see there is slightly more green under Option C.",
+    text: "To find Julie\u2019s <strong>BEST OVERALL</strong> option, you simply find the one with the most green under it.<br><br>Here, we can see there is slightly more green under Option C.",
     buttonLabel: "Next",
     captionPosition: "below",
   },
