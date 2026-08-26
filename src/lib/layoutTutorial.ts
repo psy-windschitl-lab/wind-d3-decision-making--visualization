@@ -13,10 +13,23 @@ type HighlightTarget =
   | { type: "row"; index: number }
   | { type: "cell"; index: number };
 
+// What the example chart should look like for a given step: whether the factor rows
+// have been introduced yet (vs. just the option headers on their own), and which cells
+// (by "fid__oid" key) already have their score color revealed - everything else renders
+// as a blank/gray placeholder box, via DecisionLayoutChart's own "unmodified cell" look.
+type ChartState = { factorsRevealed: boolean; revealedCells: string[] };
+
 type Step =
   | { kind: "intro"; text: string; buttonLabel: string }
-  | { kind: "cartoon"; text: string; buttonLabel: string }
-  | { kind: "highlight"; target: HighlightTarget; text: string; buttonLabel: string; captionPosition?: "above" | "below" }
+  | {
+      kind: "chart";
+      text: string;
+      buttonLabel: string;
+      showCartoon?: boolean;
+      chartState: ChartState;
+      target: HighlightTarget;
+      captionPosition?: "above" | "below";
+    }
   | { kind: "final"; text: string; buttonLabel: string };
 
 // Julie's example decision, matching the reference screenshot: 3 apartment options
@@ -42,7 +55,7 @@ const EX_LIKERT: Record<string, Record<string, number>> = {
 };
 const toSigned = (v: number) => (v - 3) / 2;
 
-// Matches the height DecisionLayoutChart is given in ensureChart() below. Fixed and known
+// Matches the height DecisionLayoutChart is given in renderChart() below. Fixed and known
 // up front (EX_FACTORS never changes at runtime) so it can also be used to reserve the
 // chart's final space before the chart itself is ever built - see chartHost's minHeight.
 const EXAMPLE_CHART_HEIGHT = EX_FACTORS.length * (90 + 8) + 92 + 32;
@@ -51,8 +64,22 @@ const EXAMPLE_CHART_HEIGHT = EX_FACTORS.length * (90 + 8) + 92 + 32;
 const CELL = {
   acElm: 0 * EX_OPTIONS.length + 0,
   acMain: 0 * EX_OPTIONS.length + 2,
+  locationElm: 1 * EX_OPTIONS.length + 0,
 };
 const ROW = { ac: 0, location: 1 };
+
+const CELL_KEY = (fid: string, oid: string) => `${fid}__${oid}`;
+const ALL_CELL_KEYS = EX_FACTORS.flatMap(f => EX_OPTIONS.map(o => CELL_KEY(f.id, o.id)));
+
+const NO_CELLS: ChartState = { factorsRevealed: false, revealedCells: [] };
+const FACTORS_NO_CELLS: ChartState = { factorsRevealed: true, revealedCells: [] };
+const AC_ELM: ChartState = { factorsRevealed: true, revealedCells: [CELL_KEY("ac", "elm")] };
+const AC_ELM_MAIN: ChartState = { factorsRevealed: true, revealedCells: [CELL_KEY("ac", "elm"), CELL_KEY("ac", "main")] };
+const AC_ELM_MAIN_LOC_ELM: ChartState = {
+  factorsRevealed: true,
+  revealedCells: [CELL_KEY("ac", "elm"), CELL_KEY("ac", "main"), CELL_KEY("location", "elm")],
+};
+const ALL_REVEALED: ChartState = { factorsRevealed: true, revealedCells: ALL_CELL_KEYS };
 
 const STEPS: Step[] = [
   {
@@ -61,50 +88,60 @@ const STEPS: Step[] = [
     buttonLabel: "Continue",
   },
   {
-    kind: "cartoon",
-    text: "Julie is choosing apartments. Here is <strong>HER</strong> layout based on <strong>HER</strong> entries.",
+    kind: "chart",
+    showCartoon: true,
+    chartState: NO_CELLS,
+    target: { type: "optionHeaders" },
+    text: "Julie is choosing apartments. She entered Elm St, Oak St, and Main St as her options. Therefore, her layout starts like this:",
     buttonLabel: "Continue",
   },
   {
-    kind: "highlight",
-    target: { type: "optionHeaders" },
-    text: "She entered three options.",
-    buttonLabel: "Next",
-  },
-  {
-    kind: "highlight",
+    kind: "chart",
+    chartState: FACTORS_NO_CELLS,
     target: { type: "factorLabels" },
     text: "She entered three factors.",
     buttonLabel: "Next",
   },
   {
-    kind: "highlight",
+    kind: "chart",
+    chartState: FACTORS_NO_CELLS,
     target: { type: "row", index: ROW.location },
-    text: "This row is thick/tall because she said location was \u201cHigh\u201d in importance.",
+    text: "The reason why the <strong><em>Location</em></strong> box is taller than the others is because Julie rated <strong><em>Location</em></strong> as <strong><em>High</em></strong> in importance.",
     buttonLabel: "Next",
   },
   {
-    kind: "highlight",
+    kind: "chart",
+    chartState: FACTORS_NO_CELLS,
     target: { type: "row", index: ROW.ac },
-    text: "This row is thin because she said air conditioning was \u201cLow\u201d in importance.",
+    text: "The reason why the <strong><em>Air Conditioning</em></strong> box is shorter than the others is because Julie rated <strong><em>Air Conditioning</em></strong> as <strong><em>Low</em></strong> in importance.",
     buttonLabel: "Next",
   },
   {
-    kind: "highlight",
+    kind: "chart",
+    chartState: AC_ELM,
     target: { type: "cell", index: CELL.acElm },
-    text: "This is mostly green because she rated the air conditioning for Option A (Elm St) as \u201cGood.\u201d",
+    text: "Next, Julie rated the air conditioning at the Elm St apartment as <strong><em>Good</em></strong>\u2014which was a 4 on the 5-point scale. Therefore, we'll color that box as mostly green.",
     buttonLabel: "Next",
   },
   {
-    kind: "highlight",
+    kind: "chart",
+    chartState: AC_ELM_MAIN,
     target: { type: "cell", index: CELL.acMain },
-    text: "This is mostly brown because she rated the air conditioning for Option C (Main St) as \u201cBad.\u201d",
+    text: "However, because Julie rated the air conditioning for the <strong><em>Main St</em></strong> apartment as <strong><em>Bad</em></strong>, which is only 2 out of 5, we'll color that box as mostly brown.",
     buttonLabel: "Next",
   },
   {
-    kind: "highlight",
+    kind: "chart",
+    chartState: AC_ELM_MAIN_LOC_ELM,
+    target: { type: "cell", index: CELL.locationElm },
+    text: "She rated the <strong><em>Location</em></strong> of the Elm St apartment as <strong><em>okay</em></strong>, so we'll color that box as half green.",
+    buttonLabel: "Next",
+  },
+  {
+    kind: "chart",
+    chartState: ALL_REVEALED,
     target: { type: "none" },
-    text: "To find Julie\u2019s <strong>BEST OVERALL</strong> option, you simply find the one with the most green under it.<br><br>This will always be consistent with an optimized decision rule (involving scores that give more weight to evaluations on subjectively important factors).",
+    text: "Here is how the full layout looks with all the boxes colored in.<br><br>To find Julie\u2019s <strong>BEST OVERALL</strong> option, you simply find the one with the most green under it.<br><br>This will always be consistent with an optimized decision rule (involving scores that give more weight to evaluations on subjectively important factors).",
     buttonLabel: "Next",
     captionPosition: "below",
   },
@@ -175,8 +212,8 @@ export function runLayoutTutorial(onComplete: () => void): void {
   const chartHost = document.createElement("div");
   chartHost.className = "tutorial-chart-host";
   // Reserved up front (before the chart itself is ever built) so chartHost already
-  // occupies its final height while it's still invisible during the cartoon step's
-  // 650ms delay - see the "cartoon" branch in showStep for why that matters.
+  // occupies its final height while it's still invisible during the first chart step's
+  // 650ms delay - see the "chart" branch in showStep for why that matters.
   chartHost.style.minHeight = `${EXAMPLE_CHART_HEIGHT}px`;
   const annotationLayer = document.createElement("div");
   annotationLayer.className = "tutorial-annotation-layer";
@@ -216,37 +253,43 @@ export function runLayoutTutorial(onComplete: () => void): void {
   let stepIndex = 0;
   let cartoonTimer: number | null = null;
 
-  function buildExampleChartData() {
+  function buildExampleChartData(state: ChartState) {
     const options = EX_OPTIONS.map(o => ({ id: o.id, label: o.label, weight: 1, identifier: o.identifier }));
-    const factors = EX_FACTORS.map(f => ({ id: f.id, label: f.label, weight: f.weight }));
+    const factors = state.factorsRevealed
+      ? EX_FACTORS.map(f => ({ id: f.id, label: f.label, weight: f.weight }))
+      : [];
+    const revealed = new Set(state.revealedCells);
     const scores: Record<string, Record<string, number>> = {};
-    const modified: string[] = [];
     EX_FACTORS.forEach(f => {
       scores[f.id] = {};
       EX_OPTIONS.forEach(o => {
         scores[f.id][o.id] = toSigned(EX_LIKERT[f.id][o.id]);
-        modified.push(`${f.id}__${o.id}`);
       });
     });
-    return { options, factors, scores, modified };
+    return { options, factors, scores, modified: Array.from(revealed) };
   }
 
-  function ensureChart(): DecisionLayoutChart {
-    if (chart) return chart;
-    // chartArea must already be laid out (display != "none") before this measures its
-    // width, or chartHost.clientWidth reads as 0 and the chart falls back to a width
-    // that doesn't match its actual box - which is what was cutting the right edge off.
-    const width = Math.max(360, chartHost.clientWidth || 640);
-    chart = new DecisionLayoutChart(chartHost, {
-      width,
-      height: EXAMPLE_CHART_HEIGHT,
-      showAddControls: false,
-      showIdentifierPrefix: true,
-      allowImportanceDrag: false,
-      readOnly: true,
-      margin: { top: 92 },
-    });
-    chart.data(buildExampleChartData()).render();
+  // Builds the chart the first time it's needed, then re-renders it in place on every
+  // subsequent call with that step's ChartState - factor rows and individual cell colors
+  // fade in/out via DecisionLayoutChart's own enter/exit transitions as `state` changes
+  // from step to step, rather than each step getting a separate chart instance.
+  function renderChart(state: ChartState): DecisionLayoutChart {
+    if (!chart) {
+      // chartArea must already be laid out (display != "none") before this measures its
+      // width, or chartHost.clientWidth reads as 0 and the chart falls back to a width
+      // that doesn't match its actual box - which is what was cutting the right edge off.
+      const width = Math.max(360, chartHost.clientWidth || 640);
+      chart = new DecisionLayoutChart(chartHost, {
+        width,
+        height: EXAMPLE_CHART_HEIGHT,
+        showAddControls: false,
+        showIdentifierPrefix: true,
+        allowImportanceDrag: false,
+        readOnly: true,
+        margin: { top: 92 },
+      });
+    }
+    chart.data(buildExampleChartData(state)).render();
     return chart;
   }
 
@@ -421,7 +464,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
     // cartoonHost/chartArea in the DOM). A step can opt into "below" to have it read as
     // a comment on the chart people just finished looking at, instead of an instruction
     // for what they're about to see.
-    const captionBelow = step.kind === "highlight" && step.captionPosition === "below";
+    const captionBelow = step.kind === "chart" && step.captionPosition === "below";
     captionBox.classList.toggle("tutorial-caption--below", captionBelow);
     if (captionBelow) {
       chartArea.after(captionBox);
@@ -435,7 +478,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
     // "ready to see yours" screen.
     const pastIntro = index > 0;
     skipBtn.style.display = pastIntro ? "" : "none";
-    eyebrow.style.display = (step.kind === "cartoon" || step.kind === "highlight") ? "" : "none";
+    eyebrow.style.display = step.kind === "chart" ? "" : "none";
     backBtn.style.display = pastIntro ? "" : "none";
 
     if (cartoonTimer !== null) {
@@ -447,8 +490,8 @@ export function runLayoutTutorial(onComplete: () => void): void {
       cartoonHost.style.display = "none";
       chartArea.style.display = "none";
       clearAnnotations();
-    } else if (step.kind === "cartoon") {
-      cartoonHost.style.display = "";
+    } else if (step.kind === "chart") {
+      cartoonHost.style.display = step.showCartoon ? "" : "none";
       clearAnnotations();
       // chartArea stays laid out (display != "none") for this whole step, even before the
       // chart itself is built - chartHost's reserved minHeight means there's no visible
@@ -457,26 +500,27 @@ export function runLayoutTutorial(onComplete: () => void): void {
       // chart appeared, and since .modal-overlay vertically centers the card, that jump
       // visibly re-centered it - Julie included - momentarily in the wrong spot.
       chartArea.style.display = "";
-      if (chart) {
-        // Already built (e.g. navigating back to this step) - show immediately.
+
+      const revealNow = () => {
+        renderChart(step.chartState);
         chartArea.classList.add("tutorial-chart-area--show");
-      } else {
+        afterChartSettled(() => {
+          if (stepIndex !== index) return;
+          drawHighlight(step.target);
+        });
+      };
+
+      if (step.showCartoon && !chart) {
+        // Only the very first chart step delays like this, so Julie's cartoon gets a
+        // moment on its own before her (partial) layout fades in beneath her.
         chartArea.classList.remove("tutorial-chart-area--show");
         cartoonTimer = window.setTimeout(() => {
           if (stepIndex !== index) return;
-          ensureChart();
-          requestAnimationFrame(() => chartArea.classList.add("tutorial-chart-area--show"));
+          revealNow();
         }, 650);
+      } else {
+        revealNow();
       }
-    } else if (step.kind === "highlight") {
-      cartoonHost.style.display = "none";
-      chartArea.style.display = "";
-      chartArea.classList.add("tutorial-chart-area--show");
-      ensureChart();
-      afterChartSettled(() => {
-        if (stepIndex !== index) return;
-        drawHighlight(step.target);
-      });
     } else {
       cartoonHost.style.display = "none";
       chartArea.style.display = "none";
@@ -486,7 +530,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
 
   function onResize() {
     const step = STEPS[stepIndex];
-    if (step.kind === "highlight") drawHighlight(step.target);
+    if (step.kind === "chart") drawHighlight(step.target);
   }
   window.addEventListener("resize", onResize);
 
