@@ -638,6 +638,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     const IMPORTANCE_LABELS = ["Low", "Mild", "Moderate", "High", "Very High"];
     const SCORE_LABELS = ["very bad", "bad", "okay", "good", "very good"];
+    // Only the endpoints of the scale get a parenthetical note, on GP3's rating boxes.
+    const SCORE_NOTES = ["(a clear weakness)", "", "", "", "(a clear strength)"];
 
     function renderStep2Importance() {
       stepHost.innerHTML = `
@@ -845,6 +847,12 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         scoreLabel.className = "rating-scale-label";
         scoreLabel.textContent = SCORE_LABELS[n - 1];
         optionLabel.append(radio, box, scoreLabel);
+        if (SCORE_NOTES[n - 1]) {
+          const scoreNote = document.createElement("span");
+          scoreNote.className = "rating-scale-note";
+          scoreNote.textContent = SCORE_NOTES[n - 1];
+          optionLabel.append(scoreNote);
+        }
         scale.appendChild(optionLabel);
       }
 
