@@ -14,10 +14,15 @@ type BuilderConfig = {
   // WADD control are hidden, and the preview heading reads "PREVIEW of your layout" -
   // all until the person clicks Finish. Only meaningful when previewMode is "live".
   restrictPreviewUntilFinish?: boolean;
-  // When true, Step 4 asks one rating question at a time (a single option/factor pair per
-  // question, worded as its own self-contained prompt) instead of grouping every option
-  // for a factor together under one shared scale legend at the top of the step.
-  sequentialRatingQuestions?: boolean;
+  // Controls how Step 4 asks its rating questions. Omit for the default: every option for
+  // a factor grouped together under one shared scale legend at the top of the step.
+  // "sequential" (GP3): one self-contained option/factor question at a time, e.g. "Think
+  // about Option A (New York) on this factor: entertainment. How would you rate this
+  // option on this factor?"
+  // "sequentialWithFactorIntro" (GP4): like "sequential", but each factor first gets its
+  // own two-line intro ("Think about this factor: entertainment. Your options might vary
+  // ...") before its (shorter-worded) per-option questions.
+  step4Style?: "sequential" | "sequentialWithFactorIntro";
 };
 
 type UIState = {
@@ -90,12 +95,12 @@ const signedToLikert = (s: number) => Math.round(3 + s * 2);
 export function createBuilderLayout(config: BuilderConfig): Page {
   return (root, ctx) => {
     // The layout-interpretation tutorial (and its replay link), the "YOUR Layout" reveal
-    // page, and its related copy are, for now, a GP2/GP3-only touch - other layouts
+    // page, and its related copy are, for now, a GP2/GP3/GP4-only touch - other layouts
     // sharing this same factory (wizard, GP1, etc.) are unaffected. root's parent is the
     // outer element LayoutBuilder.ts stamps with the resolved, lower-cased layout name
     // (see LayoutBuilder.ts's `root.dataset.layout = resolvedKey`).
     const layoutDataset = root.parentElement?.dataset.layout;
-    const isGp2 = layoutDataset === "gp2" || layoutDataset === "gp3";
+    const isGp2 = layoutDataset === "gp2" || layoutDataset === "gp3" || layoutDataset === "gp4";
     const supportsWADD = config.kind === "chart" || config.kind === "table";
     const waddSetting = ctx.query.get("wadd")?.toLowerCase();
     const waddMode = waddSetting === "on"
@@ -717,13 +722,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     }
 
     function renderStep4() {
-      if (config.sequentialRatingQuestions) {
+      if (config.step4Style === "sequential" || config.step4Style === "sequentialWithFactorIntro") {
         stepHost.innerHTML = `
           <h2 class="h1" style="font-size:1.2rem">Step 4</h2>
           <div id="factorBlocks"></div>
         `;
         const container = stepHost.querySelector<HTMLDivElement>("#factorBlocks")!;
-        drawSequentialQuestions(container);
+        if (config.step4Style === "sequentialWithFactorIntro") drawFactorIntroQuestions(container);
+        else drawSequentialQuestions(container);
       } else {
         stepHost.innerHTML = `
           <h2 class="h1" style="font-size:1.2rem">Step 4--Rate options on each factor</h2>
@@ -790,6 +796,53 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       }
     }
 
+    // Shared by both sequential Step 4 styles (GP3/GP4): the row of 5 numbered boxes,
+    // each with its "very bad"..."very good" label (and, at the endpoints, a clarifying
+    // note) underneath. onAnswered re-draws the whole question list so the next question
+    // is revealed once this one gets a value.
+    function buildRatingScale(
+      f: { id: string },
+      o: { id: string },
+      onAnswered: () => void
+    ): HTMLDivElement {
+      const scale = document.createElement("div");
+      scale.className = "rating-scale";
+      scale.setAttribute("role", "radiogroup");
+      const groupName = `score_${cellKey(f.id, o.id)}`;
+      const currentValue = state.scoresUI[f.id]?.[o.id];
+      for (let n = 1; n <= 5; n++) {
+        const optionLabel = document.createElement("label");
+        optionLabel.className = "rating-scale-option";
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = groupName;
+        radio.value = String(n);
+        if (currentValue === n) radio.checked = true;
+        radio.onchange = () => {
+          state.scoresUI[f.id] ||= {};
+          state.scoresUI[f.id][o.id] = n;
+          touchedCells.add(cellKey(f.id, o.id));
+          renderPreview();
+          onAnswered();
+        };
+        const box = document.createElement("span");
+        box.className = "rating-scale-box";
+        box.textContent = String(n);
+        const scoreLabel = document.createElement("span");
+        scoreLabel.className = "rating-scale-label";
+        scoreLabel.textContent = SCORE_LABELS[n - 1];
+        optionLabel.append(radio, box, scoreLabel);
+        if (SCORE_NOTES[n - 1]) {
+          const scoreNote = document.createElement("span");
+          scoreNote.className = "rating-scale-note";
+          scoreNote.textContent = SCORE_NOTES[n - 1];
+          optionLabel.append(scoreNote);
+        }
+        scale.appendChild(optionLabel);
+      }
+      return scale;
+    }
+
     function drawSequentialQuestion(
       container: HTMLElement,
       f: { id: string; label: string },
@@ -820,44 +873,90 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       questionLine.style.margin = "0 0 14px 20px";
       questionLine.textContent = "How would you rate this option on this factor?";
 
-      const scale = document.createElement("div");
-      scale.className = "rating-scale";
-      scale.setAttribute("role", "radiogroup");
-      const groupName = `score_${cellKey(f.id, o.id)}`;
-      const currentValue = state.scoresUI[f.id]?.[o.id];
-      for (let n = 1; n <= 5; n++) {
-        const optionLabel = document.createElement("label");
-        optionLabel.className = "rating-scale-option";
-        const radio = document.createElement("input");
-        radio.type = "radio";
-        radio.name = groupName;
-        radio.value = String(n);
-        if (currentValue === n) radio.checked = true;
-        radio.onchange = () => {
-          state.scoresUI[f.id] ||= {};
-          state.scoresUI[f.id][o.id] = n;
-          touchedCells.add(cellKey(f.id, o.id));
-          renderPreview();
-          drawSequentialQuestions(container);
-        };
-        const box = document.createElement("span");
-        box.className = "rating-scale-box";
-        box.textContent = String(n);
-        const scoreLabel = document.createElement("span");
-        scoreLabel.className = "rating-scale-label";
-        scoreLabel.textContent = SCORE_LABELS[n - 1];
-        optionLabel.append(radio, box, scoreLabel);
-        if (SCORE_NOTES[n - 1]) {
-          const scoreNote = document.createElement("span");
-          scoreNote.className = "rating-scale-note";
-          scoreNote.textContent = SCORE_NOTES[n - 1];
-          optionLabel.append(scoreNote);
-        }
-        scale.appendChild(optionLabel);
-      }
+      const scale = buildRatingScale(f, o, () => drawSequentialQuestions(container));
 
       block.append(promptLine, questionLine, scale);
       container.appendChild(block);
+    }
+
+    // GP4's Step 4: each factor gets a two-line intro (shown once, before any of that
+    // factor's questions) instead of every question naming the factor and re-explaining
+    // the scale on its own.
+    function drawFactorIntroBlock(container: HTMLElement, f: { label: string }) {
+      const introLine = document.createElement("p");
+      introLine.style.fontSize = "1.3em";
+      introLine.style.color = "var(--fg)";
+      introLine.style.margin = "0 0 4px";
+      const factorSpan = document.createElement("span");
+      factorSpan.style.fontWeight = "600";
+      factorSpan.textContent = f.label;
+      introLine.append(document.createTextNode("Think about this factor: "), factorSpan);
+
+      const introSub = document.createElement("p");
+      introSub.style.fontSize = "1.1em";
+      introSub.style.color = "var(--muted)";
+      introSub.style.margin = "0 0 20px";
+      introSub.textContent = "Your options might vary in how good they are on this factor. Some might even be bad on the factor.";
+
+      container.append(introLine, introSub);
+    }
+
+    function drawFactorIntroQuestion(
+      container: HTMLElement,
+      f: { id: string; label: string },
+      o: { id: string; label: string; identifier: string }
+    ) {
+      const block = document.createElement("div");
+      block.style.margin = "0 0 32px";
+
+      const promptLine = document.createElement("p");
+      promptLine.style.fontSize = "1.3em";
+      promptLine.style.color = "var(--fg)";
+      promptLine.style.margin = "0 0 14px";
+      const factorSpan = document.createElement("span");
+      factorSpan.style.fontWeight = "600";
+      factorSpan.textContent = f.label;
+      promptLine.append(
+        document.createTextNode("For this factor ("),
+        factorSpan,
+        document.createTextNode(`), rate Option ${o.identifier}`)
+      );
+      if (o.label.trim()) {
+        const nameSpan = document.createElement("span");
+        nameSpan.style.fontWeight = "600";
+        nameSpan.textContent = o.label;
+        promptLine.append(document.createTextNode(" ("), nameSpan, document.createTextNode(")"));
+      }
+      promptLine.append(document.createTextNode("."));
+
+      const scale = buildRatingScale(f, o, () => drawFactorIntroQuestions(container));
+
+      block.append(promptLine, scale);
+      container.appendChild(block);
+    }
+
+    function drawFactorIntroQuestions(container: HTMLElement) {
+      container.innerHTML = "";
+      for (let fIdx = 0; fIdx < state.factors.length; fIdx++) {
+        const f = state.factors[fIdx];
+        drawFactorIntroBlock(container, f);
+        let doneWithFactor = true;
+        for (let oIdx = 0; oIdx < state.options.length; oIdx++) {
+          const o = state.options[oIdx];
+          drawFactorIntroQuestion(container, f, o);
+          if (!touchedCells.has(cellKey(f.id, o.id))) { doneWithFactor = false; break; }
+        }
+        if (!doneWithFactor) break;
+        // Separate this factor's fully-answered set of questions from the next factor's,
+        // but only when there's a next set to separate it from.
+        if (fIdx < state.factors.length - 1) {
+          const divider = document.createElement("hr");
+          divider.style.border = "none";
+          divider.style.borderTop = "1px solid rgba(255,255,255,0.3)";
+          divider.style.margin = "0 0 32px";
+          container.appendChild(divider);
+        }
+      }
     }
 
     function drawFactorBlocks(container: HTMLElement) {

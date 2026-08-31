@@ -11,6 +11,7 @@ export const LAYOUT_OPTIONS: Array<{ value: string; label: string; description: 
   { value: "GP1", label: "GP1", description: "General Public 1 - a version intended for general-public participants, most similar to vanilla." },
   { value: "GP2", label: "GP2", description: "General Public 2 - a more user-friendly version than GP1, based on the wizard flow (guided questions, no live preview)." },
   { value: "GP3", label: "GP3", description: "Same as GP2, but Step 4 asks one rating question at a time instead of grouping them together." },
+  { value: "GP4", label: "GP4", description: "Same as GP2/GP3, but Step 4 first introduces each factor before asking its one-at-a-time rating questions." },
 ];
 
 export const WADD_OPTIONS: Array<{ value: string; label: string; description: string }> = [
