@@ -723,12 +723,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     function renderStep4() {
       if (config.step4Style === "sequential" || config.step4Style === "sequentialWithFactorIntro") {
+        const isFactorIntro = config.step4Style === "sequentialWithFactorIntro";
         stepHost.innerHTML = `
           <h2 class="h1" style="font-size:1.2rem">Step 4</h2>
+          ${isFactorIntro ? `<hr style="border:none; border-top:1px solid rgba(255,255,255,0.3); margin:12px 0 20px" />` : ""}
           <div id="factorBlocks"></div>
         `;
         const container = stepHost.querySelector<HTMLDivElement>("#factorBlocks")!;
-        if (config.step4Style === "sequentialWithFactorIntro") drawFactorIntroQuestions(container);
+        if (isFactorIntro) drawFactorIntroQuestions(container);
         else drawSequentialQuestions(container);
       } else {
         stepHost.innerHTML = `
@@ -803,7 +805,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     function buildRatingScale(
       f: { id: string },
       o: { id: string },
-      onAnswered: () => void
+      onAnswered: () => void,
+      showNotes: boolean = true
     ): HTMLDivElement {
       const scale = document.createElement("div");
       scale.className = "rating-scale";
@@ -832,7 +835,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         scoreLabel.className = "rating-scale-label";
         scoreLabel.textContent = SCORE_LABELS[n - 1];
         optionLabel.append(radio, box, scoreLabel);
-        if (SCORE_NOTES[n - 1]) {
+        if (showNotes && SCORE_NOTES[n - 1]) {
           const scoreNote = document.createElement("span");
           scoreNote.className = "rating-scale-note";
           scoreNote.textContent = SCORE_NOTES[n - 1];
@@ -879,16 +882,20 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       container.appendChild(block);
     }
 
-    // GP4's Step 4: each factor gets a two-line intro (shown once, before any of that
-    // factor's questions) instead of every question naming the factor and re-explaining
-    // the scale on its own.
+    // GP4's Step 4: each factor gets a centered, blue two-line intro plus a right-justified
+    // "About this factor (...):" headline (both shown once, before any of that factor's
+    // questions) instead of every question naming the factor and re-explaining the scale
+    // on its own.
     function drawFactorIntroBlock(container: HTMLElement, f: { label: string }) {
       const introLine = document.createElement("p");
       introLine.style.fontSize = "1.3em";
-      introLine.style.color = "var(--fg)";
+      introLine.style.color = "var(--muted)";
       introLine.style.margin = "0 0 4px";
+      introLine.style.textAlign = "center";
       const factorSpan = document.createElement("span");
-      factorSpan.style.fontWeight = "600";
+      factorSpan.style.color = "var(--fg)";
+      factorSpan.style.fontWeight = "700";
+      factorSpan.style.fontSize = "1.7em";
       factorSpan.textContent = f.label;
       introLine.append(document.createTextNode("Think about this factor: "), factorSpan);
 
@@ -896,9 +903,18 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       introSub.style.fontSize = "1.1em";
       introSub.style.color = "var(--muted)";
       introSub.style.margin = "0 0 20px";
+      introSub.style.textAlign = "center";
       introSub.textContent = "Your options might vary in how good they are on this factor. Some might even be bad on the factor.";
 
-      container.append(introLine, introSub);
+      const aboutLine = document.createElement("p");
+      aboutLine.style.fontSize = "1.6em";
+      aboutLine.style.fontWeight = "700";
+      aboutLine.style.color = "var(--fg)";
+      aboutLine.style.margin = "0 0 10px";
+      aboutLine.style.textAlign = "right";
+      aboutLine.textContent = `About this factor (${f.label}):`;
+
+      container.append(introLine, introSub, aboutLine);
     }
 
     function drawFactorIntroQuestion(
@@ -912,24 +928,17 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       const promptLine = document.createElement("p");
       promptLine.style.fontSize = "1.3em";
       promptLine.style.color = "var(--fg)";
-      promptLine.style.margin = "0 0 14px";
-      const factorSpan = document.createElement("span");
-      factorSpan.style.fontWeight = "600";
-      factorSpan.textContent = f.label;
-      promptLine.append(
-        document.createTextNode("For this factor ("),
-        factorSpan,
-        document.createTextNode(`), rate Option ${o.identifier}`)
-      );
+      promptLine.style.margin = "0 20px 14px 0";
+      promptLine.style.textAlign = "right";
+      promptLine.append(document.createTextNode(`rate Option ${o.identifier}`));
       if (o.label.trim()) {
         const nameSpan = document.createElement("span");
         nameSpan.style.fontWeight = "600";
         nameSpan.textContent = o.label;
         promptLine.append(document.createTextNode(" ("), nameSpan, document.createTextNode(")"));
       }
-      promptLine.append(document.createTextNode("."));
 
-      const scale = buildRatingScale(f, o, () => drawFactorIntroQuestions(container));
+      const scale = buildRatingScale(f, o, () => drawFactorIntroQuestions(container), false);
 
       block.append(promptLine, scale);
       container.appendChild(block);
