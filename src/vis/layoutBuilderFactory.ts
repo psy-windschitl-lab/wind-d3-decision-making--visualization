@@ -891,7 +891,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       introLine.style.fontSize = "1.3em";
       introLine.style.color = "var(--muted)";
       introLine.style.margin = "0 0 4px";
-      introLine.style.textAlign = "center";
+      introLine.style.textAlign = "left";
       const factorSpan = document.createElement("span");
       factorSpan.style.color = "var(--fg)";
       factorSpan.style.fontWeight = "700";
@@ -900,10 +900,10 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       introLine.append(document.createTextNode("Think about this factor: "), factorSpan);
 
       const introSub = document.createElement("p");
-      introSub.style.fontSize = "1.1em";
+      introSub.style.fontSize = "1.3em";
       introSub.style.color = "var(--muted)";
       introSub.style.margin = "0 0 20px";
-      introSub.style.textAlign = "center";
+      introSub.style.textAlign = "left";
       introSub.textContent = "Your options might vary in how good they are on this factor. Some might even be bad on the factor.";
 
       const aboutLine = document.createElement("p");
@@ -928,7 +928,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       const promptLine = document.createElement("p");
       promptLine.style.fontSize = "1.3em";
       promptLine.style.color = "var(--fg)";
-      promptLine.style.margin = "0 0 14px 20px";
+      promptLine.style.margin = "0 0 14px 60px";
       promptLine.style.textAlign = "left";
       promptLine.append(document.createTextNode(`rate Option ${o.identifier}`));
       if (o.label.trim()) {
@@ -939,7 +939,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       }
 
       const scale = buildRatingScale(f, o, () => drawFactorIntroQuestions(container), false);
-      scale.style.marginLeft = "20px";
+      scale.style.marginLeft = "60px";
 
       block.append(promptLine, scale);
       container.appendChild(block);
