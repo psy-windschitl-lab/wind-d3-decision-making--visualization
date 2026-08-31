@@ -6,11 +6,11 @@ import type { Page } from "../router";
 export const LAYOUT_OPTIONS: Array<{ value: string; label: string; description: string }> = [
   { value: "manual", label: "manual", description: "Build the layout yourself directly — no guided questions." },
   { value: "wizard", label: "wizard", description: "Answer guided questions first; the layout appears once you finish." },
-  { value: "wizard2", label: "wizard with new questions", description: "Same as wizard, but Step 4 asks one rating question at a time." },
   { value: "table", label: "table", description: "Answer guided questions first; a table appears once you finish, instead of a layout." },
   { value: "vanilla", label: "vanilla", description: "Answer guided questions; the layout updates live as you go, instead of appearing only at the end." },
   { value: "GP1", label: "GP1", description: "General Public 1 - a version intended for general-public participants, most similar to vanilla." },
   { value: "GP2", label: "GP2", description: "General Public 2 - a more user-friendly version than GP1, based on the wizard flow (guided questions, no live preview)." },
+  { value: "GP3", label: "GP3", description: "Same as GP2, but Step 4 asks one rating question at a time instead of grouping them together." },
 ];
 
 export const WADD_OPTIONS: Array<{ value: string; label: string; description: string }> = [

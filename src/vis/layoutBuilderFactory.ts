@@ -89,11 +89,13 @@ const signedToLikert = (s: number) => Math.round(3 + s * 2);
 
 export function createBuilderLayout(config: BuilderConfig): Page {
   return (root, ctx) => {
-    // The layout-interpretation tutorial (and its replay link) is, for now, a GP2-only
-    // touch - other layouts sharing this same factory (wizard, GP1, etc.) are unaffected.
-    // root's parent is the outer element LayoutBuilder.ts stamps with the resolved,
-    // lower-cased layout name (see LayoutBuilder.ts's `root.dataset.layout = resolvedKey`).
-    const isGp2 = root.parentElement?.dataset.layout === "gp2";
+    // The layout-interpretation tutorial (and its replay link), the "YOUR Layout" reveal
+    // page, and its related copy are, for now, a GP2/GP3-only touch - other layouts
+    // sharing this same factory (wizard, GP1, etc.) are unaffected. root's parent is the
+    // outer element LayoutBuilder.ts stamps with the resolved, lower-cased layout name
+    // (see LayoutBuilder.ts's `root.dataset.layout = resolvedKey`).
+    const layoutDataset = root.parentElement?.dataset.layout;
+    const isGp2 = layoutDataset === "gp2" || layoutDataset === "gp3";
     const supportsWADD = config.kind === "chart" || config.kind === "table";
     const waddSetting = ctx.query.get("wadd")?.toLowerCase();
     const waddMode = waddSetting === "on"
