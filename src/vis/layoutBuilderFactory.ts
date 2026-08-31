@@ -911,7 +911,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       aboutLine.style.fontWeight = "700";
       aboutLine.style.color = "var(--fg)";
       aboutLine.style.margin = "0 0 10px";
-      aboutLine.style.textAlign = "right";
+      aboutLine.style.textAlign = "left";
       aboutLine.textContent = `About this factor (${f.label}):`;
 
       container.append(introLine, introSub, aboutLine);
@@ -928,8 +928,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       const promptLine = document.createElement("p");
       promptLine.style.fontSize = "1.3em";
       promptLine.style.color = "var(--fg)";
-      promptLine.style.margin = "0 20px 14px 0";
-      promptLine.style.textAlign = "right";
+      promptLine.style.margin = "0 0 14px 20px";
+      promptLine.style.textAlign = "left";
       promptLine.append(document.createTextNode(`rate Option ${o.identifier}`));
       if (o.label.trim()) {
         const nameSpan = document.createElement("span");
@@ -939,6 +939,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       }
 
       const scale = buildRatingScale(f, o, () => drawFactorIntroQuestions(container), false);
+      scale.style.marginLeft = "20px";
 
       block.append(promptLine, scale);
       container.appendChild(block);
