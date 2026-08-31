@@ -643,8 +643,6 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     const IMPORTANCE_LABELS = ["Low", "Mild", "Moderate", "High", "Very High"];
     const SCORE_LABELS = ["very bad", "bad", "okay", "good", "very good"];
-    // Only the endpoints of the scale get a parenthetical note, on GP3's rating boxes.
-    const SCORE_NOTES = ["(a clear weakness)", "", "", "", "(a clear strength)"];
 
     function renderStep2Importance() {
       stepHost.innerHTML = `
@@ -798,15 +796,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       }
     }
 
-    // Shared by both sequential Step 4 styles (GP3/GP4): the row of 5 numbered boxes,
-    // each with its "very bad"..."very good" label (and, at the endpoints, a clarifying
-    // note) underneath. onAnswered re-draws the whole question list so the next question
-    // is revealed once this one gets a value.
+    // Shared by both sequential Step 4 styles (GP3/GP4): the row of 5 numbered boxes, each
+    // with its "very bad"..."very good" label underneath. onAnswered re-draws the whole
+    // question list so the next question is revealed once this one gets a value.
     function buildRatingScale(
       f: { id: string },
       o: { id: string },
-      onAnswered: () => void,
-      showNotes: boolean = true
+      onAnswered: () => void
     ): HTMLDivElement {
       const scale = document.createElement("div");
       scale.className = "rating-scale";
@@ -838,12 +834,6 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         scoreLabel.textContent = SCORE_LABELS[n - 1];
         box.append(numberSpan, scoreLabel);
         optionLabel.append(radio, box);
-        if (showNotes && SCORE_NOTES[n - 1]) {
-          const scoreNote = document.createElement("span");
-          scoreNote.className = "rating-scale-note";
-          scoreNote.textContent = SCORE_NOTES[n - 1];
-          optionLabel.append(scoreNote);
-        }
         scale.appendChild(optionLabel);
       }
       return scale;
@@ -941,7 +931,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         promptLine.append(document.createTextNode(" ("), nameSpan, document.createTextNode(")"));
       }
 
-      const scale = buildRatingScale(f, o, () => drawFactorIntroQuestions(container), false);
+      const scale = buildRatingScale(f, o, () => drawFactorIntroQuestions(container));
       scale.style.marginLeft = "60px";
 
       block.append(promptLine, scale);
