@@ -774,6 +774,15 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           if (!touchedCells.has(cellKey(f.id, o.id))) { doneWithFactor = false; break; }
         }
         if (!doneWithFactor) break;
+        // Separate this factor's fully-answered set of questions from the next factor's,
+        // but only when there's a next set to separate it from.
+        if (fIdx < state.factors.length - 1) {
+          const divider = document.createElement("hr");
+          divider.style.border = "none";
+          divider.style.borderTop = "1px solid rgba(255,255,255,0.3)";
+          divider.style.margin = "0 0 32px";
+          container.appendChild(divider);
+        }
       }
     }
 
