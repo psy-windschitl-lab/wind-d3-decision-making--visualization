@@ -152,7 +152,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             most green under it.
           </p>
           <ul style="margin:0 0 14px 24px; padding-left:1.2em; font-size:1.1em; color:var(--fg); line-height:1.3">
-            <li>Factors that you said were more important have thicker/taller rows</li>
+            <li>Factors that you said were more important have taller rows</li>
             <li>More green versus brown in a box means you rated an option higher on that factor</li>
             <li>The overall amount of green under an option matches how an optimized decision rule would score the overall utility of the option for you.</li>
           </ul>
@@ -830,11 +830,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         };
         const box = document.createElement("span");
         box.className = "rating-scale-box";
-        box.textContent = String(n);
+        const numberSpan = document.createElement("span");
+        numberSpan.className = "rating-scale-number";
+        numberSpan.textContent = String(n);
         const scoreLabel = document.createElement("span");
         scoreLabel.className = "rating-scale-label";
         scoreLabel.textContent = SCORE_LABELS[n - 1];
-        optionLabel.append(radio, box, scoreLabel);
+        box.append(numberSpan, scoreLabel);
+        optionLabel.append(radio, box);
         if (showNotes && SCORE_NOTES[n - 1]) {
           const scoreNote = document.createElement("span");
           scoreNote.className = "rating-scale-note";
