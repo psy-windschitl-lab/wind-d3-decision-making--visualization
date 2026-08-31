@@ -14,6 +14,10 @@ type BuilderConfig = {
   // WADD control are hidden, and the preview heading reads "PREVIEW of your layout" -
   // all until the person clicks Finish. Only meaningful when previewMode is "live".
   restrictPreviewUntilFinish?: boolean;
+  // When true, Step 4 asks one rating question at a time (a single option/factor pair per
+  // question, worded as its own self-contained prompt) instead of grouping every option
+  // for a factor together under one shared scale legend at the top of the step.
+  sequentialRatingQuestions?: boolean;
 };
 
 type UIState = {
@@ -709,38 +713,132 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     }
 
     function renderStep4() {
-      stepHost.innerHTML = `
-        <h2 class="h1" style="font-size:1.2rem">Step 4--Rate options on each factor</h2>
-        <p style="color:var(--muted); margin:10px 0 16px; font-size:1.5em; line-height:1.3">Now you'll rate options based on how good or bad they are on a given factor. Please use this scale.</p>
-        <div style="display:flex; justify-content:center">
-          <svg viewBox="0 0 700 210" width="100%" style="max-width:640px; overflow:visible">
-            <g font-family="inherit">
-              ${[
-                { n: 1, boxX: 282, labelX: 140 },
-                { n: 2, boxX: 316, labelX: 260 },
-                { n: 3, boxX: 350, labelX: 350 },
-                { n: 4, boxX: 384, labelX: 440 },
-                { n: 5, boxX: 418, labelX: 560 },
-              ].map(({ n, boxX, labelX }) => `
-                <line x1="${boxX}" y1="45" x2="${labelX}" y2="140" stroke="rgba(232,238,252,0.35)" stroke-width="1.5" />
-                <rect x="${boxX - 15}" y="15" width="30" height="30" rx="6" ry="6"
-                  fill="rgba(232,238,252,0.08)" stroke="rgba(232,238,252,0.25)" />
-                <text x="${boxX}" y="31" text-anchor="middle" dominant-baseline="middle"
-                  fill="var(--fg)" font-weight="600" font-size="16">${n}</text>
-                <text x="${labelX}" y="158" text-anchor="middle"
-                  fill="var(--muted)" font-style="italic" font-size="19">${SCORE_LABELS[n - 1]}</text>
-              `).join("")}
-            </g>
-          </svg>
-        </div>
-        <hr style="border:none; border-top:1px solid #1e2a4a; margin:20px 0" />
-        <div id="factorBlocks"></div>
-      `;
-      const container = stepHost.querySelector<HTMLDivElement>("#factorBlocks")!;
-      drawFactorBlocks(container);
+      if (config.sequentialRatingQuestions) {
+        stepHost.innerHTML = `
+          <h2 class="h1" style="font-size:1.2rem">Step 4</h2>
+          <div id="factorBlocks"></div>
+        `;
+        const container = stepHost.querySelector<HTMLDivElement>("#factorBlocks")!;
+        drawSequentialQuestions(container);
+      } else {
+        stepHost.innerHTML = `
+          <h2 class="h1" style="font-size:1.2rem">Step 4--Rate options on each factor</h2>
+          <p style="color:var(--muted); margin:10px 0 16px; font-size:1.5em; line-height:1.3">Now you'll rate options based on how good or bad they are on a given factor. Please use this scale.</p>
+          <div style="display:flex; justify-content:center">
+            <svg viewBox="0 0 700 210" width="100%" style="max-width:640px; overflow:visible">
+              <g font-family="inherit">
+                ${[
+                  { n: 1, boxX: 282, labelX: 140 },
+                  { n: 2, boxX: 316, labelX: 260 },
+                  { n: 3, boxX: 350, labelX: 350 },
+                  { n: 4, boxX: 384, labelX: 440 },
+                  { n: 5, boxX: 418, labelX: 560 },
+                ].map(({ n, boxX, labelX }) => `
+                  <line x1="${boxX}" y1="45" x2="${labelX}" y2="140" stroke="rgba(232,238,252,0.35)" stroke-width="1.5" />
+                  <rect x="${boxX - 15}" y="15" width="30" height="30" rx="6" ry="6"
+                    fill="rgba(232,238,252,0.08)" stroke="rgba(232,238,252,0.25)" />
+                  <text x="${boxX}" y="31" text-anchor="middle" dominant-baseline="middle"
+                    fill="var(--fg)" font-weight="600" font-size="16">${n}</text>
+                  <text x="${labelX}" y="158" text-anchor="middle"
+                    fill="var(--muted)" font-style="italic" font-size="19">${SCORE_LABELS[n - 1]}</text>
+                `).join("")}
+              </g>
+            </svg>
+          </div>
+          <hr style="border:none; border-top:1px solid #1e2a4a; margin:20px 0" />
+          <div id="factorBlocks"></div>
+        `;
+        const container = stepHost.querySelector<HTMLDivElement>("#factorBlocks")!;
+        drawFactorBlocks(container);
+      }
 
       backBtn.style.display = "";
       nextBtn.textContent = "Finish";
+    }
+
+    // Alternate Step 4 rendering ("wizard with new questions"): one self-contained
+    // question at a time - "Think about Option X (label) on this factor: label. How would
+    // you rate this option on this factor?" - instead of grouping every option for a
+    // factor together under one shared scale legend. The next question is appended below
+    // once the current one is answered, in the same factor-then-option order as the
+    // default Step 4, using the same touchedCells/scoresUI state so Finish's validation
+    // and the live preview both work unchanged.
+    function drawSequentialQuestions(container: HTMLElement) {
+      container.innerHTML = "";
+      for (let fIdx = 0; fIdx < state.factors.length; fIdx++) {
+        const f = state.factors[fIdx];
+        let doneWithFactor = true;
+        for (let oIdx = 0; oIdx < state.options.length; oIdx++) {
+          const o = state.options[oIdx];
+          drawSequentialQuestion(container, f, o);
+          if (!touchedCells.has(cellKey(f.id, o.id))) { doneWithFactor = false; break; }
+        }
+        if (!doneWithFactor) break;
+      }
+    }
+
+    function drawSequentialQuestion(
+      container: HTMLElement,
+      f: { id: string; label: string },
+      o: { id: string; label: string; identifier: string }
+    ) {
+      const block = document.createElement("div");
+      block.style.margin = "0 0 32px";
+
+      const promptLine = document.createElement("p");
+      promptLine.style.fontSize = "1.3em";
+      promptLine.style.color = "var(--fg)";
+      promptLine.style.margin = "0 0 4px";
+      promptLine.append(document.createTextNode(`Think about Option ${o.identifier}`));
+      if (o.label.trim()) {
+        const nameSpan = document.createElement("span");
+        nameSpan.style.fontWeight = "600";
+        nameSpan.textContent = o.label;
+        promptLine.append(document.createTextNode(" ("), nameSpan, document.createTextNode(")"));
+      }
+      const factorSpan = document.createElement("span");
+      factorSpan.style.fontWeight = "600";
+      factorSpan.textContent = f.label;
+      promptLine.append(document.createTextNode(" on this factor: "), factorSpan, document.createTextNode("."));
+
+      const questionLine = document.createElement("p");
+      questionLine.style.fontSize = "1.3em";
+      questionLine.style.color = "var(--muted)";
+      questionLine.style.margin = "0 0 14px 20px";
+      questionLine.textContent = "How would you rate this option on this factor?";
+
+      const scale = document.createElement("div");
+      scale.className = "rating-scale";
+      scale.setAttribute("role", "radiogroup");
+      const groupName = `score_${cellKey(f.id, o.id)}`;
+      const currentValue = state.scoresUI[f.id]?.[o.id];
+      for (let n = 1; n <= 5; n++) {
+        const optionLabel = document.createElement("label");
+        optionLabel.className = "rating-scale-option";
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = groupName;
+        radio.value = String(n);
+        if (currentValue === n) radio.checked = true;
+        radio.onchange = () => {
+          state.scoresUI[f.id] ||= {};
+          state.scoresUI[f.id][o.id] = n;
+          touchedCells.add(cellKey(f.id, o.id));
+          renderPreview();
+          drawSequentialQuestions(container);
+        };
+        const box = document.createElement("span");
+        box.className = "rating-scale-box";
+        box.textContent = String(n);
+        const scoreLabel = document.createElement("span");
+        scoreLabel.className = "rating-scale-label";
+        scoreLabel.textContent = SCORE_LABELS[n - 1];
+        optionLabel.append(radio, box, scoreLabel);
+        scale.appendChild(optionLabel);
+      }
+
+      block.append(promptLine, questionLine, scale);
+      container.appendChild(block);
     }
 
     function drawFactorBlocks(container: HTMLElement) {
