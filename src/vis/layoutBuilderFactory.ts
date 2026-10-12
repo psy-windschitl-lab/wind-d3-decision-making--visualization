@@ -102,15 +102,16 @@ const signedToLikert = (s: number) => Math.round(3 + s * 2);
 export function createBuilderLayout(config: BuilderConfig): Page {
   return (root, ctx) => {
     // The layout-interpretation tutorial (and its replay link), the "YOUR Layout" reveal
-    // page, and its related copy are, for now, a GP2/GP3/GP4/wizard-only touch - other
-    // layouts sharing this same factory (GP1, table, etc.) are unaffected. root's parent is
-    // the outer element LayoutBuilder.ts stamps with the resolved, lower-cased layout name
-    // (see LayoutBuilder.ts's `root.dataset.layout = resolvedKey`). "wizard" was folded in
-    // here (rather than just copying step4Style) because it's meant to be identical to GP4
-    // in every respect, not just its Step 4 question style.
+    // page, and its related copy are, for now, a GP2/GP3/GP4/wizard/table-only touch -
+    // other layouts sharing this same factory (GP1, vanilla, etc.) are unaffected. root's
+    // parent is the outer element LayoutBuilder.ts stamps with the resolved, lower-cased
+    // layout name (see LayoutBuilder.ts's `root.dataset.layout = resolvedKey`). "wizard"
+    // and "table" were folded in here (rather than just copying step4Style) because
+    // they're meant to be identical to GP4 in every respect but their final kind of
+    // preview (chart vs. table).
     const layoutDataset = root.parentElement?.dataset.layout;
     const isGp2 = layoutDataset === "gp2" || layoutDataset === "gp3" || layoutDataset === "gp4"
-      || layoutDataset === "wizard";
+      || layoutDataset === "wizard" || layoutDataset === "table";
     const supportsWADD = config.kind === "chart" || config.kind === "table";
     const waddSetting = ctx.query.get("wadd")?.toLowerCase();
     const waddMode = waddSetting === "on"
@@ -194,6 +195,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     const waddMainSentence = config.kind === "table"
       ? "The option with the highest WADD score is best one overall."
       : "The option with the highest WADD score (which is also the one with the most green) is best one overall.";
+    // Julie's tutorial example is a chart, so its opening line normally promises a chart
+    // too - the table layout gets this line swapped for one promising a table instead
+    // (everything else about the tutorial, including Julie's own example chart, is
+    // unchanged - it's still a useful explanation of how importance/ratings combine).
+    const tutorialOptions = config.kind === "table"
+      ? { introText: "Great! Soon, you'll see a table that summarizes all the answers you provided.<br><br>But first: an example!" }
+      : undefined;
     const waddNoteHtml = supportsWADD
       ? `
         <div id="waddNote" style="display:none; margin-top:12px; padding:12px; border-radius:8px; background:rgba(232,238,252,0.06); line-height:1.5">
@@ -237,10 +245,10 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           ` : ""}
         </div>
         <div id="viz" style="margin-top:8px; background:#0f1730; border-radius:12px; padding:8px;"></div>
-        <div id="chartNoteWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${isGp2 ? gp2ChartNoteHtml : chartNoteHtml}</div>
+        <div id="chartNoteWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${isGp2 && config.kind === "chart" ? gp2ChartNoteHtml : chartNoteHtml}</div>
         <div id="waddControlWrap" style="${config.restrictPreviewUntilFinish ? "display:none" : ""}">${showWADDControl}</div>
         <div id="waddScoresWrap" style="display:none; margin-top:12px"></div>
-        ${isGp2 ? gp2WaddNoteHtml : waddNoteHtml}
+        ${isGp2 && config.kind === "chart" ? gp2WaddNoteHtml : waddNoteHtml}
       </section>
     `;
 
@@ -261,7 +269,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     const wizardCard = root.querySelector<HTMLElement>("#wizardCard")!;
     const backToEntriesBtn = root.querySelector<HTMLButtonElement>("#backToEntriesBtn");
     root.querySelector<HTMLButtonElement>("#replayTutorialBtn")?.addEventListener("click", () => {
-      runLayoutTutorial(() => {});
+      runLayoutTutorial(() => {}, tutorialOptions);
     });
     // GP2's layout reveal is its own "page" - reached by Finish, left by this. decisionHost
     // is declared further down (it's a plain created element, not part of root.innerHTML),
@@ -1143,12 +1151,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
           renderPreview(true);
           window.scrollTo(0, 0);
         };
-        // Every time someone reaches their own layout, walk them through a quick, fixed
-        // example (Julie's apartment decision) explaining how to read it - row height =
-        // importance, green vs. brown = how favorably an option was rated. Only
-        // meaningful for the chart preview; the table view has no layout to explain.
-        if (isGp2 && config.kind === "chart") {
-          runLayoutTutorial(revealLayout);
+        // Every time someone reaches their own result, walk them through a quick, fixed
+        // example (Julie's apartment decision) explaining how importance/ratings combine -
+        // row height = importance, green vs. brown = how favorably an option was rated.
+        // Shown for both the chart and table previews (table's intro line is swapped via
+        // tutorialOptions above to promise a table, not a chart, right after).
+        if (isGp2 && (config.kind === "chart" || config.kind === "table")) {
+          runLayoutTutorial(revealLayout, tutorialOptions);
           return;
         }
         revealLayout();

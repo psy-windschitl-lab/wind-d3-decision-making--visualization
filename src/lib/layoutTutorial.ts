@@ -181,7 +181,13 @@ const CARTOON_SVG = `
   </svg>
 `;
 
-export function runLayoutTutorial(onComplete: () => void): void {
+export function runLayoutTutorial(onComplete: () => void, options?: { introText?: string }): void {
+  // A fresh copy so the override only ever touches this one run - STEPS itself (and every
+  // other step in it) stays shared/untouched across calls.
+  const steps: Step[] = options?.introText
+    ? [{ ...STEPS[0], text: options.introText }, ...STEPS.slice(1)]
+    : STEPS;
+
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay tutorial-overlay";
 
@@ -247,7 +253,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
   backBtn.textContent = "Back";
   const dots = document.createElement("div");
   dots.className = "tutorial-dots";
-  STEPS.forEach(() => {
+  steps.forEach(() => {
     const dot = document.createElement("span");
     dot.className = "tutorial-dot";
     dots.appendChild(dot);
@@ -501,7 +507,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
 
   function showStep(index: number) {
     stepIndex = index;
-    const step = STEPS[index];
+    const step = steps[index];
     updateDots();
 
     // innerHTML (not textContent) because STEPS text uses <br> for line breaks and
@@ -579,7 +585,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
   }
 
   function onResize() {
-    const step = STEPS[stepIndex];
+    const step = steps[stepIndex];
     if (step.kind === "chart") drawHighlight(step.target);
   }
   window.addEventListener("resize", onResize);
@@ -592,7 +598,7 @@ export function runLayoutTutorial(onComplete: () => void): void {
   }
 
   nextBtn.onclick = () => {
-    if (stepIndex >= STEPS.length - 1) finish();
+    if (stepIndex >= steps.length - 1) finish();
     else showStep(stepIndex + 1);
   };
   backBtn.onclick = () => {

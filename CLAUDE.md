@@ -39,10 +39,18 @@ comfortably, or debug a failed build themselves. Practical implications:
   `gp3` is GP2 plus `step4Style: "sequential"` (Step 4 asks one rating question at a time
   instead of grouping a factor's options together). `gp4` is GP2 plus
   `step4Style: "sequentialWithFactorIntro"` (like gp3, but each factor first gets its own
-  two-line intro before its one-at-a-time questions). `wizard` is currently configured
-  identically to `gp4` (same config, and folded into the `isGp2` check below) - kept as its
-  own file only so a wizard-specific tweak to the ending flow can be made later without
-  touching `gp4.ts`.
+  two-line intro before its one-at-a-time questions). `wizard` is GP4 plus
+  `decisionFlow: "rankedInline"` (see below) - kept as its own file only so further
+  wizard-specific tweaks can be made without touching `gp4.ts`. `table` is the same as
+  `wizard` in every respect except `kind: "table"` (a table instead of a chart) and the
+  tutorial's opening line, which promises a table instead of a layout (`tutorialOptions`
+  in `layoutBuilderFactory.ts`).
+  `decisionFlow` controls the final "pick your option" step: omit for the default (a modal
+  dialog that covers the layout/table while picking - still used by gp2/gp3/gp4/gp1/etc.),
+  or `"rankedInline"` (wizard/table) to build a full preference ranking inline below the
+  layout instead, with response buttons aligned under each option's own chart column (see
+  `src/lib/rankedDecisionWorkflow.ts` - falls back to a plain row of buttons for `table`,
+  since there's no chart to align under).
 - `src/lib/vis.ts` — the real `DecisionLayoutChart` D3 component (rows = factors, height
   proportional to importance weight; columns = options; cells fill green/brown based on
   score). `src/DecisionLayoutChart.ts` is an older/simpler version — don't confuse the two;
@@ -50,10 +58,11 @@ comfortably, or debug a failed build themselves. Practical implications:
 - `src/lib/layoutTutorial.ts` — the "how to read your layout" walkthrough using a fixed
   fictional example (Julie's apartment decision), built by mounting the real chart
   component in read-only mode and measuring its rendered DOM to position highlight
-  callouts. **Currently GP2/GP3/GP4/wizard-only** — gated in `layoutBuilderFactory.ts` via
-  the `isGp2` variable (`root.parentElement?.dataset.layout` being `"gp2"`, `"gp3"`,
-  `"gp4"`, or `"wizard"`). Don't let it leak into other layouts (GP1, table, etc.) unless
-  explicitly asked to expand its scope.
+  callouts. **Currently GP2/GP3/GP4/wizard/table-only** — gated in `layoutBuilderFactory.ts`
+  via the `isGp2` variable (`root.parentElement?.dataset.layout` being `"gp2"`, `"gp3"`,
+  `"gp4"`, `"wizard"`, or `"table"`). Don't let it leak into other layouts (GP1, vanilla,
+  etc.) unless explicitly asked to expand its scope. `runLayoutTutorial` takes an optional
+  second argument, `{ introText }`, to override just the opening line (used by `table`).
 - `src/pages/chooser.ts` — the "Choose a Version" picker; layout options are described
   here for end users.
 - Query params driving behavior: `layout` (wizard/vanilla/gp1/gp2/gp3/gp4/manual/table),
