@@ -5,7 +5,7 @@ import type { Page } from "../router";
 // any of them is left out of the URL.
 export const LAYOUT_OPTIONS: Array<{ value: string; label: string; description: string }> = [
   { value: "manual", label: "manual", description: "Build the layout yourself directly — no guided questions." },
-  { value: "wizard", label: "wizard", description: "Answer guided questions first; the layout appears once you finish." },
+  { value: "wizard", label: "wizard", description: "Identical to GP4: guided questions, the Julie tutorial, and the \"YOUR Layout\" reveal page." },
   { value: "table", label: "table", description: "Answer guided questions first; a table appears once you finish, instead of a layout." },
   { value: "vanilla", label: "vanilla", description: "Answer guided questions; the layout updates live as you go, instead of appearing only at the end." },
   { value: "GP1", label: "GP1", description: "General Public 1 - a version intended for general-public participants, most similar to vanilla." },

@@ -39,7 +39,10 @@ comfortably, or debug a failed build themselves. Practical implications:
   `gp3` is GP2 plus `step4Style: "sequential"` (Step 4 asks one rating question at a time
   instead of grouping a factor's options together). `gp4` is GP2 plus
   `step4Style: "sequentialWithFactorIntro"` (like gp3, but each factor first gets its own
-  two-line intro before its one-at-a-time questions).
+  two-line intro before its one-at-a-time questions). `wizard` is currently configured
+  identically to `gp4` (same config, and folded into the `isGp2` check below) - kept as its
+  own file only so a wizard-specific tweak to the ending flow can be made later without
+  touching `gp4.ts`.
 - `src/lib/vis.ts` — the real `DecisionLayoutChart` D3 component (rows = factors, height
   proportional to importance weight; columns = options; cells fill green/brown based on
   score). `src/DecisionLayoutChart.ts` is an older/simpler version — don't confuse the two;
@@ -47,10 +50,10 @@ comfortably, or debug a failed build themselves. Practical implications:
 - `src/lib/layoutTutorial.ts` — the "how to read your layout" walkthrough using a fixed
   fictional example (Julie's apartment decision), built by mounting the real chart
   component in read-only mode and measuring its rendered DOM to position highlight
-  callouts. **Currently GP2/GP3/GP4-only** — gated in `layoutBuilderFactory.ts` via the
-  `isGp2` variable (`root.parentElement?.dataset.layout` being `"gp2"`, `"gp3"`, or
-  `"gp4"`). Don't let it leak into other layouts (wizard, GP1, etc.) unless explicitly
-  asked to expand its scope.
+  callouts. **Currently GP2/GP3/GP4/wizard-only** — gated in `layoutBuilderFactory.ts` via
+  the `isGp2` variable (`root.parentElement?.dataset.layout` being `"gp2"`, `"gp3"`,
+  `"gp4"`, or `"wizard"`). Don't let it leak into other layouts (GP1, table, etc.) unless
+  explicitly asked to expand its scope.
 - `src/pages/chooser.ts` — the "Choose a Version" picker; layout options are described
   here for end users.
 - Query params driving behavior: `layout` (wizard/vanilla/gp1/gp2/gp3/gp4/manual/table),

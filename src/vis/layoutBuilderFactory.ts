@@ -95,12 +95,15 @@ const signedToLikert = (s: number) => Math.round(3 + s * 2);
 export function createBuilderLayout(config: BuilderConfig): Page {
   return (root, ctx) => {
     // The layout-interpretation tutorial (and its replay link), the "YOUR Layout" reveal
-    // page, and its related copy are, for now, a GP2/GP3/GP4-only touch - other layouts
-    // sharing this same factory (wizard, GP1, etc.) are unaffected. root's parent is the
-    // outer element LayoutBuilder.ts stamps with the resolved, lower-cased layout name
-    // (see LayoutBuilder.ts's `root.dataset.layout = resolvedKey`).
+    // page, and its related copy are, for now, a GP2/GP3/GP4/wizard-only touch - other
+    // layouts sharing this same factory (GP1, table, etc.) are unaffected. root's parent is
+    // the outer element LayoutBuilder.ts stamps with the resolved, lower-cased layout name
+    // (see LayoutBuilder.ts's `root.dataset.layout = resolvedKey`). "wizard" was folded in
+    // here (rather than just copying step4Style) because it's meant to be identical to GP4
+    // in every respect, not just its Step 4 question style.
     const layoutDataset = root.parentElement?.dataset.layout;
-    const isGp2 = layoutDataset === "gp2" || layoutDataset === "gp3" || layoutDataset === "gp4";
+    const isGp2 = layoutDataset === "gp2" || layoutDataset === "gp3" || layoutDataset === "gp4"
+      || layoutDataset === "wizard";
     const supportsWADD = config.kind === "chart" || config.kind === "table";
     const waddSetting = ctx.query.get("wadd")?.toLowerCase();
     const waddMode = waddSetting === "on"
