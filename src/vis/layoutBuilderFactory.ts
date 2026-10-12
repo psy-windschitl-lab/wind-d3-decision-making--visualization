@@ -2,6 +2,7 @@ import type { Page } from "../router";
 import { DecisionLayoutChart } from "../lib/vis";
 import { computeWaddScores } from "../lib/wadd";
 import { attachDecisionWorkflow } from "../lib/decisionWorkflow";
+import { attachRankedDecisionWorkflow } from "../lib/rankedDecisionWorkflow";
 import { renderPostDecisionLanding } from "../pages/postDecision";
 import { runLayoutTutorial } from "../lib/layoutTutorial";
 
@@ -23,6 +24,12 @@ type BuilderConfig = {
   // own two-line intro ("Think about this factor: entertainment. Your options might vary
   // ...") before its (shorter-worded) per-option questions.
   step4Style?: "sequential" | "sequentialWithFactorIntro";
+  // Controls how the final "pick your option" step works. Omit for the default: a modal
+  // dialog ("Choose an option") that covers the layout while picking. "rankedInline"
+  // (wizard-only) replaces that with ranking questions appended inline below the layout,
+  // with response buttons aligned under each option's own column - see
+  // attachRankedDecisionWorkflow in src/lib/rankedDecisionWorkflow.ts.
+  decisionFlow?: "modal" | "rankedInline";
 };
 
 type UIState = {
@@ -1384,38 +1391,51 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     bottomNextWrap.appendChild(bottomNextBtn);
     root.appendChild(bottomNextWrap);
 
-    attachDecisionWorkflow({
-      host: decisionHost,
-      getDecisionData: () => {
-        const data = toChartData(state, false);
-        const waddScores = computeWaddScores(data.options, data.factors, data.scores);
-        return {
-          layoutName: root.parentElement?.dataset.layout ?? null,
-          decisionTopic: state.decisionTopic,
-          options: data.options.map(o => ({
-            id: o.id,
-            label: state.options.find(so => so.id === o.id)?.label || o.label,
-            weight: o.weight,
-            identifier: o.identifier,
-          })),
-          factors: data.factors.map(f => ({
-            id: f.id,
-            label: state.factors.find(sf => sf.id === f.id)?.label || f.label,
-            weight: f.weight,
-          })),
-          scores: data.scores,
-          waddScores,
-        };
-      },
-      showWaddOnButtons: waddMode === "always",
-      onRestart: () => location.reload(),
-      onReturnToLayout: () => {
-        bottomNextWrap.style.display = "";
-      },
-      onNext: () => {
-        renderPostDecisionLanding(root);
-      },
-    });
+    const getDecisionData = () => {
+      const data = toChartData(state, false);
+      const waddScores = computeWaddScores(data.options, data.factors, data.scores);
+      return {
+        layoutName: root.parentElement?.dataset.layout ?? null,
+        decisionTopic: state.decisionTopic,
+        options: data.options.map(o => ({
+          id: o.id,
+          label: state.options.find(so => so.id === o.id)?.label || o.label,
+          weight: o.weight,
+          identifier: o.identifier,
+        })),
+        factors: data.factors.map(f => ({
+          id: f.id,
+          label: state.factors.find(sf => sf.id === f.id)?.label || f.label,
+          weight: f.weight,
+        })),
+        scores: data.scores,
+        waddScores,
+      };
+    };
+
+    if (config.decisionFlow === "rankedInline") {
+      attachRankedDecisionWorkflow({
+        host: decisionHost,
+        vizEl,
+        getDecisionData,
+        onNext: () => {
+          renderPostDecisionLanding(root);
+        },
+      });
+    } else {
+      attachDecisionWorkflow({
+        host: decisionHost,
+        getDecisionData,
+        showWaddOnButtons: waddMode === "always",
+        onRestart: () => location.reload(),
+        onReturnToLayout: () => {
+          bottomNextWrap.style.display = "";
+        },
+        onNext: () => {
+          renderPostDecisionLanding(root);
+        },
+      });
+    }
 
     go(1);
     if (config.previewMode === "live") {
