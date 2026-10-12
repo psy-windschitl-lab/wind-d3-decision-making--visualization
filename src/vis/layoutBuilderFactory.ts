@@ -159,11 +159,11 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             <li>More green versus brown in a box means you rated an option higher on that factor</li>
             <li>The overall amount of green under an option matches how an optimized decision rule would score the overall utility of the option for you.</li>
           </ul>
-          ${waddMode === "always" ? "" : `
+          ${waddMode === "checkbox" ? `
           <button id="showWaddBtn" type="button" style="background:transparent; border:1px solid rgba(232,238,252,0.25); color:var(--fg); border-radius:6px; padding:0.5rem 1rem; font-weight:600; cursor:pointer; font-size:1em">
             Show scores for the optimized decision rule (WADD Scores)
           </button>
-          `}
+          ` : ""}
         </div>
       `
       : "";
