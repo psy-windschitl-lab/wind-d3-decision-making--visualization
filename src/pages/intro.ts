@@ -16,20 +16,11 @@ export const INTRO_VARIANTS: Record<string, IntroVariant> = {
     `,
   },
   intro2: {
-    title: "Placeholder for Instructions for a research version",
+    title: "Welcome!",
     body: `
-      <p style="color:var(--muted)">
-        <i>Note: this placeholder needs further refinement depending on what the study is
-        doing and whether it's using a wizard, manual, table, or vanilla version, and on
-        the WADD setting.</i>
-      </p>
-      <p>The instructions might be simple, like this:</p>
-      <p>There are four main stages to build your layout.</p>
-      <p>1. Specify your options</p>
-      <p>2. Specify factors that could matter</p>
-      <p>3. Rate option on each factor</p>
-      <p>4. Rate the importance of each factor</p>
-      <p>After that you'll see a visual representation&hellip;</p>
+      <div style="font-size:1.15em">
+        <p>Ready to work through a decision process?</p>
+      </div>
     `,
   },
 };
@@ -64,7 +55,9 @@ export function renderIntroPanel(
         <button id="introContinueBtn" style="padding:.5rem .8rem; border-radius:.5rem; border:none; background:var(--accent); color:white">
           ${introKey === "intro1"
             ? `Get Started on a Decision Now<br><span style="font-size:0.75em; font-weight:400">(app works on desktops/laptops only)</span>`
-            : "Continue"}
+            : introKey === "intro2"
+              ? "Yes, I'm ready."
+              : "Continue"}
         </button>
         ${introKey === "intro1" ? `<button id="introMoreBtn">See More Introductory Information</button>` : ""}
       </div>
