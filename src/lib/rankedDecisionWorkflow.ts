@@ -26,7 +26,6 @@ type RankedAttachParams = {
   // uses in layoutBuilderFactory.ts to align WADD scores under each column.
   vizEl: HTMLElement;
   getDecisionData: () => DecisionData;
-  onNext?: () => void;
 };
 
 type RankedDecisionPayload = {
@@ -83,7 +82,7 @@ function downloadRankingJson(payload: RankedDecisionPayload) {
   }
 }
 
-export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onNext }: RankedAttachParams) {
+export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData }: RankedAttachParams) {
   if (!host) return;
 
   const trigger = document.createElement("button");
@@ -256,14 +255,8 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onN
     doneBlock.className = "ranked-question-block";
     const doneText = document.createElement("p");
     doneText.className = "ranked-question-text";
-    doneText.textContent = "Your ranking has been recorded and downloaded. Thank you!";
-    const nextBtn = document.createElement("button");
-    nextBtn.type = "button";
-    nextBtn.className = "decision-btn";
-    nextBtn.textContent = "Next";
-    nextBtn.style.marginTop = "12px";
-    nextBtn.addEventListener("click", () => onNext?.());
-    doneBlock.append(doneText, nextBtn);
+    doneText.textContent = "Your choice/preferences have been recorded. Ready to move on?";
+    doneBlock.append(doneText);
     questionsWrap.appendChild(doneBlock);
   }
 }

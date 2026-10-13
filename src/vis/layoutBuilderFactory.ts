@@ -1427,9 +1427,6 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         host: decisionHost,
         vizEl,
         getDecisionData,
-        onNext: () => {
-          renderPostDecisionLanding(root);
-        },
       });
     } else {
       attachDecisionWorkflow({
