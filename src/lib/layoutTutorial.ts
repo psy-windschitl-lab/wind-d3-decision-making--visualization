@@ -1,5 +1,4 @@
 import { DecisionLayoutChart } from "./vis";
-import { computeWaddScores } from "./wadd";
 
 // A short guided walkthrough, shown once someone finishes the wizard and right before
 // their own result (a layout chart, or - for the "table" layout - a table) appears, that
@@ -7,8 +6,8 @@ import { computeWaddScores } from "./wadd";
 // decision). For the chart version, it reuses the real DecisionLayoutChart component (in
 // read-only mode) so the example always looks exactly like the real thing. For the table
 // version, it builds a table using the same "Factor / Importance / Option..." shape and
-// CSS classes (.table/.table-importance/.table-wadd) as the real result table. Either
-// way, it measures the rendered DOM to position its yellow highlight callouts.
+// CSS classes (.table/.table-importance) as the real result table. Either way, it
+// measures the rendered DOM to position its yellow highlight callouts.
 
 type HighlightTarget =
   | { type: "none" }
@@ -22,11 +21,10 @@ type HighlightTarget =
   | { type: "optionColumns" };
 
 // What the example (chart or table) should look like for a given step: whether the
-// factor rows have been introduced yet (vs. just the option headers on their own), which
-// cells (by "fid__oid" key) already have their rating revealed - everything else renders
-// as a blank/gray placeholder (chart) or an em dash (table) - and, for the table version
-// only, whether its WADD row is showing yet.
-type ChartState = { factorsRevealed: boolean; revealedCells: string[]; showWadd?: boolean };
+// factor rows have been introduced yet (vs. just the option headers on their own), and
+// which cells (by "fid__oid" key) already have their rating revealed - everything else
+// renders as a blank/gray placeholder (chart) or an em dash (table).
+type ChartState = { factorsRevealed: boolean; revealedCells: string[] };
 
 type Step =
   | { kind: "intro"; text: string; buttonLabel: string }
@@ -104,7 +102,6 @@ const AC_ELM_MAIN_LOC_ELM: ChartState = {
   revealedCells: [CELL_KEY("ac", "elm"), CELL_KEY("ac", "main"), CELL_KEY("location", "elm")],
 };
 const ALL_REVEALED: ChartState = { factorsRevealed: true, revealedCells: ALL_CELL_KEYS };
-const ALL_REVEALED_WITH_WADD: ChartState = { ...ALL_REVEALED, showWadd: true };
 
 const STEPS_CHART: Step[] = [
   {
@@ -186,7 +183,7 @@ const STEPS_CHART: Step[] = [
 
 // Table-version equivalent of STEPS_CHART, for the "table" layout - same fixed example,
 // same progressive reveal/highlight structure, but narrating a table (factor rows,
-// Importance words, numeric ratings, a WADD row) instead of a colored-box chart.
+// Importance words, numeric ratings) instead of a colored-box chart.
 const STEPS_TABLE: Step[] = [
   {
     kind: "intro",
@@ -245,16 +242,16 @@ const STEPS_TABLE: Step[] = [
   },
   {
     kind: "visual",
-    chartState: ALL_REVEALED_WITH_WADD,
+    chartState: ALL_REVEALED,
     target: { type: "none" },
-    text: "Here is how the full table looks with all the ratings filled in, including a WADD score for each option.",
+    text: "Here is how the full table looks with all the ratings filled in.",
     buttonLabel: "Next",
   },
   {
     kind: "visual",
-    chartState: ALL_REVEALED_WITH_WADD,
+    chartState: ALL_REVEALED,
     target: { type: "optionColumns" },
-    text: "To find Julie’s <strong>BEST OVERALL</strong> option, look for the one with the highest WADD score.<br><br>Here, we can see Option C has the highest WADD score.",
+    text: "To find Julie’s <strong>BEST OVERALL</strong> option, you can take into consideration Julie’s ratings of each factor for each option, but also how important a given factor was to Julie.",
     buttonLabel: "Next",
     captionPosition: "below",
   },
@@ -284,8 +281,8 @@ const CARTOON_SVG = `
 `;
 
 // Builds the table-version example as a real <table>, reusing the same CSS classes
-// (.table/.table-importance/.table-wadd) as the real result table so it looks consistent
-// with the rest of the app. Header/body rows for factors only appear once
+// (.table/.table-importance) as the real result table so it looks consistent with the
+// rest of the app. Header/body rows for factors only appear once
 // state.factorsRevealed is true (mirroring the chart's "just the option headers, no rows
 // yet" state); an unrevealed cell shows an em dash, matching how the real table already
 // renders a missing rating.
@@ -357,30 +354,6 @@ function buildJulieTableElement(state: ChartState): HTMLTableElement {
       });
       tbody.appendChild(row);
     });
-
-    if (state.showWadd) {
-      const waddScores = computeWaddScores(
-        EX_OPTIONS.map(o => ({ id: o.id, weight: 1 })),
-        EX_FACTORS.map(f => ({ id: f.id, weight: f.weight })),
-        buildSignedScores()
-      );
-      const waddRow = document.createElement("tr");
-      waddRow.classList.add("table-wadd");
-      const waddLabel = document.createElement("th");
-      waddLabel.scope = "row";
-      waddLabel.textContent = "WADD";
-      waddRow.appendChild(waddLabel);
-      const filler = document.createElement("td");
-      filler.classList.add("table-importance");
-      waddRow.appendChild(filler);
-      EX_OPTIONS.forEach(o => {
-        const td = document.createElement("td");
-        td.style.textAlign = "center";
-        td.textContent = waddScores[o.id].toFixed(1);
-        waddRow.appendChild(td);
-      });
-      tbody.appendChild(waddRow);
-    }
   }
   table.appendChild(tbody);
   return table;
@@ -400,7 +373,7 @@ function measureExampleTableHeight(): number {
   probe.style.left = "-9999px";
   probe.style.top = "0";
   probe.style.width = "640px";
-  probe.appendChild(buildJulieTableElement(ALL_REVEALED_WITH_WADD));
+  probe.appendChild(buildJulieTableElement(ALL_REVEALED));
   document.body.appendChild(probe);
   const height = probe.getBoundingClientRect().height;
   probe.remove();
@@ -751,7 +724,6 @@ export function runLayoutTutorial(
     const headerThs = Array.from(table.querySelectorAll<HTMLTableCellElement>("thead th"));
     const optionThs = headerThs.slice(-numOptions);
     const bodyRows = Array.from(table.querySelectorAll<HTMLTableRowElement>("tbody tr"));
-    const factorRows = bodyRows.filter(row => !row.classList.contains("table-wadd"));
 
     const optionCellsInRow = (row: HTMLTableRowElement): HTMLElement[] => {
       const cells = Array.from(row.children) as HTMLElement[];
@@ -773,16 +745,16 @@ export function runLayoutTutorial(
 
     if (target.type === "optionHeaders" && optionThs.length) {
       rect = unionRect(optionThs.map(el => el.getBoundingClientRect()));
-    } else if (target.type === "factorLabels" && factorRows.length) {
-      const rects = factorRows.flatMap(row => Array.from(row.children).slice(0, 2).map(el => el.getBoundingClientRect()));
+    } else if (target.type === "factorLabels" && bodyRows.length) {
+      const rects = bodyRows.flatMap(row => Array.from(row.children).slice(0, 2).map(el => el.getBoundingClientRect()));
       if (rects.length) rect = unionRect(rects);
     } else if (target.type === "row") {
-      const row = factorRows[target.index];
+      const row = bodyRows[target.index];
       if (row) rect = row.getBoundingClientRect();
     } else if (target.type === "cell") {
       const fIdx = Math.floor(target.index / numOptions);
       const oIdx = target.index % numOptions;
-      const row = factorRows[fIdx];
+      const row = bodyRows[fIdx];
       const td = row ? optionCellsInRow(row)[oIdx] : null;
       if (td) rect = td.getBoundingClientRect();
     }
