@@ -63,7 +63,7 @@ const EX_LIKERT: Record<string, Record<string, number>> = {
 // The table version's Importance column shows these words directly (no row-height
 // metaphor to explain, unlike the chart) - chosen to match the "High"/"Low" language
 // already used in both versions' narration for location/air conditioning.
-const EX_IMPORTANCE_WORDS: Record<string, string> = { ac: "Low", location: "High", price: "Moderate" };
+const EX_IMPORTANCE_WORDS: Record<string, string> = { ac: "Low (1)", location: "High (4)", price: "Moderate (3)" };
 const toSigned = (v: number) => (v - 3) / 2;
 
 function buildSignedScores(): Record<string, Record<string, number>> {
@@ -209,14 +209,14 @@ const STEPS_TABLE: Step[] = [
     kind: "visual",
     chartState: FACTORS_NO_CELLS,
     target: { type: "row", index: ROW.location },
-    text: "Julie rated <strong><em>Location</em></strong> as <strong><em>High</em></strong> in importance, so its Importance column shows “High.”",
+    text: "Julie rated <strong><em>Location</em></strong> as <strong><em>High (4)</em></strong> in importance, so its Importance column shows “High (4).”",
     buttonLabel: "Next",
   },
   {
     kind: "visual",
     chartState: FACTORS_NO_CELLS,
     target: { type: "row", index: ROW.ac },
-    text: "Julie rated <strong><em>Air Conditioning</em></strong> as <strong><em>Low</em></strong> in importance, so its Importance column shows “Low.”",
+    text: "Julie rated <strong><em>Air Conditioning</em></strong> as <strong><em>Low (1)</em></strong> in importance, so its Importance column shows “Low (1).”",
     buttonLabel: "Next",
   },
   {
@@ -250,15 +250,15 @@ const STEPS_TABLE: Step[] = [
   {
     kind: "visual",
     chartState: ALL_REVEALED,
-    target: { type: "optionColumns" },
+    target: { type: "none" },
     text: "To find Julie’s <strong>BEST OVERALL</strong> option, you can take into consideration Julie’s ratings of each factor for each option, but also how important a given factor was to Julie.",
     buttonLabel: "Next",
     captionPosition: "below",
   },
   {
     kind: "final",
-    text: "Ready to see <strong>YOUR</strong> layout?",
-    buttonLabel: "See my layout",
+    text: "Ready to see <strong>YOUR</strong> table?",
+    buttonLabel: "See my table",
   },
 ];
 
@@ -285,26 +285,44 @@ const CARTOON_SVG = `
 // rest of the app. Header/body rows for factors only appear once
 // state.factorsRevealed is true (mirroring the chart's "just the option headers, no rows
 // yet" state); an unrevealed cell shows an em dash, matching how the real table already
-// renders a missing rating.
-function buildJulieTableElement(state: ChartState): HTMLTableElement {
+// renders a missing rating. The Factor/Importance header cells are always present (just
+// invisible via visibility:hidden, not display:none, while unrevealed) so they keep
+// reserving their column's width - otherwise the option headers would sit flush left
+// before the factor rows appear, then jump right once those two columns show up.
+// colWidths (one px width per column, Factor/Importance/each option in order) pins every
+// column to its final size via a <colgroup>, measured once up front by
+// measureExampleTableLayout() - without it, a table with no body rows yet (or only a
+// couple of short placeholder values) would size its columns too narrow and the option
+// columns wouldn't land where they'll end up once the table is fully revealed.
+function buildJulieTableElement(state: ChartState, colWidths?: number[]): HTMLTableElement {
   const table = document.createElement("table");
   table.className = "table";
   table.style.width = "100%";
 
+  if (colWidths && colWidths.length === 2 + EX_OPTIONS.length) {
+    const colgroup = document.createElement("colgroup");
+    colWidths.forEach(w => {
+      const col = document.createElement("col");
+      col.style.width = `${w}px`;
+      colgroup.appendChild(col);
+    });
+    table.appendChild(colgroup);
+  }
+
   const thead = document.createElement("thead");
   const headRow = document.createElement("tr");
-  if (state.factorsRevealed) {
-    const factorTh = document.createElement("th");
-    factorTh.scope = "col";
-    factorTh.textContent = "Factor";
-    headRow.appendChild(factorTh);
-
-    const importanceTh = document.createElement("th");
-    importanceTh.scope = "col";
-    importanceTh.textContent = "Importance";
-    importanceTh.classList.add("table-importance");
-    headRow.appendChild(importanceTh);
+  const factorTh = document.createElement("th");
+  factorTh.scope = "col";
+  factorTh.textContent = "Factor";
+  const importanceTh = document.createElement("th");
+  importanceTh.scope = "col";
+  importanceTh.textContent = "Importance";
+  importanceTh.classList.add("table-importance");
+  if (!state.factorsRevealed) {
+    factorTh.style.visibility = "hidden";
+    importanceTh.style.visibility = "hidden";
   }
+  headRow.append(factorTh, importanceTh);
   EX_OPTIONS.forEach(o => {
     const th = document.createElement("th");
     th.scope = "col";
@@ -359,25 +377,33 @@ function buildJulieTableElement(state: ChartState): HTMLTableElement {
   return table;
 }
 
-// Measures the table version's full (tallest) height up front, the same way
-// EXAMPLE_CHART_HEIGHT is known up front for the chart - so its space can be reserved
-// before it's ever built, avoiding the chart version's once-fixed "content pops in at a
-// different height than reserved, re-centering the whole modal" glitch. Unlike the
-// chart, there's no simple formula for a table's rendered height (it depends on CSS font
-// size/padding), so this renders the full table into a detached, off-screen probe and
-// reads back its real height.
-function measureExampleTableHeight(): number {
+// Measures the table version's full (tallest) height, and every column's final width, up
+// front - the same way EXAMPLE_CHART_HEIGHT is known up front for the chart - so both can
+// be reserved/pinned before the table is ever built for real. The height reservation
+// avoids the chart version's once-fixed "content pops in at a different height than
+// reserved, re-centering the whole modal" glitch; the column widths (fed back into
+// buildJulieTableElement as colWidths) keep every column - especially the option columns
+// - at their final position throughout the walkthrough, instead of starting narrower
+// while factor rows are blank/hidden and jumping wider once they fill in. Unlike the
+// chart, there's no simple formula for any of this (it depends on CSS font
+// size/padding and the real text content), so this renders the full table into a
+// detached, off-screen probe and reads back its real dimensions.
+function measureExampleTableLayout(): { height: number; colWidths: number[] } {
   const probe = document.createElement("div");
   probe.style.position = "absolute";
   probe.style.visibility = "hidden";
   probe.style.left = "-9999px";
   probe.style.top = "0";
   probe.style.width = "640px";
-  probe.appendChild(buildJulieTableElement(ALL_REVEALED));
+  const table = buildJulieTableElement(ALL_REVEALED);
+  probe.appendChild(table);
   document.body.appendChild(probe);
   const height = probe.getBoundingClientRect().height;
+  const colWidths = Array.from(table.querySelectorAll<HTMLTableCellElement>("thead th")).map(
+    th => th.getBoundingClientRect().width
+  );
   probe.remove();
-  return height;
+  return { height, colWidths };
 }
 
 export function runLayoutTutorial(
@@ -432,10 +458,13 @@ export function runLayoutTutorial(
   chartArea.style.display = "none";
   const chartHost = document.createElement("div");
   chartHost.className = "tutorial-chart-host";
+  // Table-only: measured once up front so every table build in this run (see
+  // renderJulieTable below) can pin its columns to their final width via colWidths.
+  const tableLayout = kind === "table" ? measureExampleTableLayout() : null;
   // Reserved up front (before the chart/table itself is ever built) so chartHost already
   // occupies its final height while it's still invisible during the first visual step's
   // 650ms delay - see the "visual" branch in showStep for why that matters.
-  chartHost.style.minHeight = `${kind === "table" ? measureExampleTableHeight() : EXAMPLE_CHART_HEIGHT}px`;
+  chartHost.style.minHeight = `${kind === "table" ? tableLayout!.height : EXAMPLE_CHART_HEIGHT}px`;
   const annotationLayer = document.createElement("div");
   annotationLayer.className = "tutorial-annotation-layer";
   // annotationLayer must be a child of chartHost, not a sibling under chartArea - an
@@ -516,7 +545,7 @@ export function runLayoutTutorial(
     Array.from(chartHost.children).forEach(child => {
       if (child !== annotationLayer) child.remove();
     });
-    chartHost.appendChild(buildJulieTableElement(state));
+    chartHost.appendChild(buildJulieTableElement(state, tableLayout?.colWidths));
     visualBuilt = true;
   }
 
@@ -746,11 +775,18 @@ export function runLayoutTutorial(
     if (target.type === "optionHeaders" && optionThs.length) {
       rect = unionRect(optionThs.map(el => el.getBoundingClientRect()));
     } else if (target.type === "factorLabels" && bodyRows.length) {
-      const rects = bodyRows.flatMap(row => Array.from(row.children).slice(0, 2).map(el => el.getBoundingClientRect()));
+      // Just the Factor column (not Importance) - this target is about "she entered
+      // three factors", not their importance.
+      const rects = bodyRows.flatMap(row => Array.from(row.children).slice(0, 1).map(el => el.getBoundingClientRect()));
       if (rects.length) rect = unionRect(rects);
     } else if (target.type === "row") {
+      // Just the Factor label + Importance cells for this one row (not the data cells to
+      // the right, which aren't relevant to a step that's only talking about importance).
       const row = bodyRows[target.index];
-      if (row) rect = row.getBoundingClientRect();
+      if (row) {
+        const rects = Array.from(row.children).slice(0, 2).map(el => el.getBoundingClientRect());
+        if (rects.length) rect = unionRect(rects);
+      }
     } else if (target.type === "cell") {
       const fIdx = Math.floor(target.index / numOptions);
       const oIdx = target.index % numOptions;

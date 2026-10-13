@@ -42,15 +42,17 @@ comfortably, or debug a failed build themselves. Practical implications:
   two-line intro before its one-at-a-time questions). `wizard` is GP4 plus
   `decisionFlow: "rankedInline"` (see below) - kept as its own file only so further
   wizard-specific tweaks can be made without touching `gp4.ts`. `table` is the same as
-  `wizard` in every respect except `kind: "table"` (a table instead of a chart) and the
-  tutorial's opening line, which promises a table instead of a layout (`tutorialOptions`
-  in `layoutBuilderFactory.ts`).
+  `wizard` in every respect except `kind: "table"` (a table instead of a chart), the
+  tutorial's opening line (promises a table instead of a layout, via `tutorialOptions` in
+  `layoutBuilderFactory.ts`), and the "YOUR ___" reveal heading reading "YOUR Table"
+  instead of "YOUR Layout" (same isGp2 branch, just keyed off `config.kind === "table"`).
   `decisionFlow` controls the final "pick your option" step: omit for the default (a modal
   dialog that covers the layout/table while picking - still used by gp2/gp3/gp4/gp1/etc.),
   or `"rankedInline"` (wizard/table) to build a full preference ranking inline below the
-  layout instead, with response buttons aligned under each option's own chart column (see
-  `src/lib/rankedDecisionWorkflow.ts` - falls back to a plain row of buttons for `table`,
-  since there's no chart to align under).
+  layout/table instead, with response buttons aligned under each option's own column -
+  the chart's column header rects for chart-kind layouts, or the result `<table>`'s own
+  last N header `<th>`s for `table` (see `src/lib/rankedDecisionWorkflow.ts`'s
+  `measureColumns`).
 - `src/lib/vis.ts` — the real `DecisionLayoutChart` D3 component (rows = factors, height
   proportional to importance weight; columns = options; cells fill green/brown based on
   score). `src/DecisionLayoutChart.ts` is an older/simpler version — don't confuse the two;
@@ -58,17 +60,22 @@ comfortably, or debug a failed build themselves. Practical implications:
 - `src/lib/layoutTutorial.ts` — the "how to read your result" walkthrough using a fixed
   fictional example (Julie's apartment decision). For chart-kind layouts it mounts the
   real `DecisionLayoutChart` component in read-only mode; for `table` it builds a real
-  `<table>` (same `.table`/`.table-importance`/`.table-wadd` CSS classes as the real
-  result table) from the same fixed example data - two separate step-content arrays
-  (`STEPS_CHART`/`STEPS_TABLE`) share one set of plumbing (modal, highlight-box drawing,
-  Back/Next/Skip) that branches on `kind`. Either way, it measures the rendered DOM to
-  position its yellow highlight callouts. **Currently GP2/GP3/GP4/wizard/table-only** —
-  gated in `layoutBuilderFactory.ts` via the `isGp2` variable (`root.parentElement?.
-  dataset.layout` being `"gp2"`, `"gp3"`, `"gp4"`, `"wizard"`, or `"table"`). Don't let it
-  leak into other layouts (GP1, vanilla, etc.) unless explicitly asked to expand its
-  scope. `runLayoutTutorial`'s second argument, `{ introText?, kind? }`, overrides the
-  opening line and/or picks `"table"` instead of the default `"chart"` (both set by
-  `layoutBuilderFactory.ts`'s `tutorialOptions` for `config.kind === "table"`).
+  `<table>` (same `.table`/`.table-importance` CSS classes as the real result table, no
+  WADD row/mentions anywhere in this tutorial) from the same fixed example data - two
+  separate step-content arrays (`STEPS_CHART`/`STEPS_TABLE`) share one set of plumbing
+  (modal, highlight-box drawing, Back/Next/Skip) that branches on `kind`. Either way, it
+  measures the rendered DOM to position its yellow highlight callouts; for the table, a
+  `colWidths` array (measured once up front by `measureExampleTableLayout()` against the
+  fully-revealed table) is fed into every subsequent table build via a `<colgroup>`, so
+  every column - especially the option columns - sits at its final position from the very
+  first step instead of shifting once factor rows/values appear. **Currently
+  GP2/GP3/GP4/wizard/table-only** — gated in `layoutBuilderFactory.ts` via the `isGp2`
+  variable (`root.parentElement?.dataset.layout` being `"gp2"`, `"gp3"`, `"gp4"`,
+  `"wizard"`, or `"table"`). Don't let it leak into other layouts (GP1, vanilla, etc.)
+  unless explicitly asked to expand its scope. `runLayoutTutorial`'s second argument,
+  `{ introText?, kind? }`, overrides the opening line and/or picks `"table"` instead of
+  the default `"chart"` (both set by `layoutBuilderFactory.ts`'s `tutorialOptions` for
+  `config.kind === "table"`).
 - `src/pages/chooser.ts` — the "Choose a Version" picker; layout options are described
   here for end users.
 - Query params driving behavior: `layout` (wizard/vanilla/gp1/gp2/gp3/gp4/manual/table),

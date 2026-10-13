@@ -1140,7 +1140,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
             waddControlWrap.style.display = "";
             previewHeading.innerHTML = `<h2 class="h1" style="font-size:2.2rem">Your Layout</h2>`;
           } else if (isGp2) {
-            previewHeading.innerHTML = `<h2 class="h1" style="font-size:2.6rem; margin-bottom:0">YOUR Layout</h2>`;
+            const previewNoun = config.kind === "table" ? "Table" : "Layout";
+            previewHeading.innerHTML = `<h2 class="h1" style="font-size:2.6rem; margin-bottom:0">YOUR ${previewNoun}</h2>`;
           }
           if (isGp2) {
             // The layout becomes its own "page" - the entry wizard steps out of the way
@@ -1430,6 +1431,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         host: decisionHost,
         vizEl,
         getDecisionData,
+        onNext: () => renderPostDecisionLanding(root),
       });
     } else {
       attachDecisionWorkflow({

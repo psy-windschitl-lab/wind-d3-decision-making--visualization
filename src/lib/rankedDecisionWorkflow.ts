@@ -20,12 +20,16 @@ type DecisionData = {
 
 type RankedAttachParams = {
   host: HTMLElement;
-  // The element DecisionLayoutChart renders its SVG into - its rendered column header
-  // rects (".dl-cols > g.col rect.header-bg") are measured to align each rank's response
-  // buttons under the matching option column, the same technique renderWaddScoresBlock
-  // uses in layoutBuilderFactory.ts to align WADD scores under each column.
+  // The element the result (chart or table) is rendered into. For a chart, its rendered
+  // column header rects (".dl-cols > g.col rect.header-bg") are measured to align each
+  // rank's response buttons under the matching option column, the same technique
+  // renderWaddScoresBlock uses in layoutBuilderFactory.ts to align WADD scores under each
+  // column. For a table (no chart to align under), its header row's option <th> cells
+  // are measured the same way instead - see measureColumns below.
   vizEl: HTMLElement;
   getDecisionData: () => DecisionData;
+  // Called when someone clicks the final "Yes, ready to move on." button.
+  onNext?: () => void;
 };
 
 type RankedDecisionPayload = {
@@ -82,7 +86,7 @@ function downloadRankingJson(payload: RankedDecisionPayload) {
   }
 }
 
-export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData }: RankedAttachParams) {
+export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onNext }: RankedAttachParams) {
   if (!host) return;
 
   const trigger = document.createElement("button");
@@ -114,14 +118,28 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData }: R
 
   // Each column's left/width, measured from the live DOM relative to questionsWrap's own
   // position (not assumed to share vizEl's offset) so alignment holds regardless of how
-  // the chart's card and the decision area are laid out relative to each other.
-  function measureColumns(wrapRect: DOMRect): Array<{ left: number; width: number }> | null {
+  // the chart's/table's card and the decision area are laid out relative to each other.
+  function measureColumns(wrapRect: DOMRect, numOptions: number): Array<{ left: number; width: number }> | null {
     const headerRects = Array.from(vizEl.querySelectorAll<SVGGraphicsElement>(".dl-cols > g.col rect.header-bg"));
-    if (!headerRects.length) return null;
-    return headerRects.map(r => {
-      const rect = r.getBoundingClientRect();
-      return { left: Math.round(rect.left - wrapRect.left), width: Math.round(rect.width) };
-    });
+    if (headerRects.length) {
+      return headerRects.map(r => {
+        const rect = r.getBoundingClientRect();
+        return { left: Math.round(rect.left - wrapRect.left), width: Math.round(rect.width) };
+      });
+    }
+    // No chart - for the "table" layout, align under the table's own option columns
+    // instead (its last numOptions header cells, same convention the result table and
+    // the tutorial's highlight-drawing code both use).
+    const table = vizEl.querySelector("table");
+    if (table) {
+      const optionThs = Array.from(table.querySelectorAll<HTMLTableCellElement>("thead th")).slice(-numOptions);
+      if (!optionThs.length) return null;
+      return optionThs.map(el => {
+        const rect = el.getBoundingClientRect();
+        return { left: Math.round(rect.left - wrapRect.left), width: Math.round(rect.width) };
+      });
+    }
+    return null;
   }
 
   function buildOptionButton(
@@ -158,12 +176,16 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData }: R
     // Positioned after buttonsWrap is actually in the DOM, so its own rect is real.
     requestAnimationFrame(() => {
       const wrapRect = buttonsWrap.getBoundingClientRect();
-      const cols = measureColumns(wrapRect);
+      const cols = measureColumns(wrapRect, data.options.length);
       const useAbsolute = !!cols && cols.length === data.options.length;
       if (useAbsolute) {
         buttonsWrap.style.position = "relative";
         buttonsWrap.style.minHeight = "72px";
       }
+      // Nudge the question text over to roughly start above the first response button,
+      // instead of sitting flush at the card's left edge while the buttons themselves are
+      // indented to align under the chart's/table's first option column.
+      question.style.marginLeft = useAbsolute && cols ? `${cols[0].left}px` : "";
       data.options.forEach((opt, i) => {
         const chosenAt = rankedOptionIds.indexOf(opt.id);
         let state: "open" | "selected" | "unavailable";
@@ -256,7 +278,15 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData }: R
     const doneText = document.createElement("p");
     doneText.className = "ranked-question-text";
     doneText.textContent = "Your choice/preferences have been recorded. Ready to move on?";
-    doneBlock.append(doneText);
+    doneBlock.appendChild(doneText);
+
+    const nextBtn = document.createElement("button");
+    nextBtn.type = "button";
+    nextBtn.className = "decision-btn";
+    nextBtn.textContent = "Yes, ready to move on.";
+    nextBtn.addEventListener("click", () => onNext?.());
+    doneBlock.appendChild(nextBtn);
+
     questionsWrap.appendChild(doneBlock);
   }
 }
