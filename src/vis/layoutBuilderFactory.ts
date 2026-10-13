@@ -197,10 +197,13 @@ export function createBuilderLayout(config: BuilderConfig): Page {
       : "The option with the highest WADD score (which is also the one with the most green) is best one overall.";
     // Julie's tutorial example is a chart, so its opening line normally promises a chart
     // too - the table layout gets this line swapped for one promising a table instead
-    // (everything else about the tutorial, including Julie's own example chart, is
-    // unchanged - it's still a useful explanation of how importance/ratings combine).
+    // (everything else about the tutorial is unchanged in spirit - it's still Julie's
+    // fixed example, just rendered as a table instead of a chart; see "kind" below).
     const tutorialOptions = config.kind === "table"
-      ? { introText: "Great! Soon, you'll see a table that summarizes all the answers you provided.<br><br>But first: an example!" }
+      ? {
+          introText: "Great! Soon, you'll see a table that summarizes all the answers you provided.<br><br>But first: an example!",
+          kind: "table" as const,
+        }
       : undefined;
     const waddNoteHtml = supportsWADD
       ? `
