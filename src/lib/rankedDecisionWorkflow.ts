@@ -88,24 +88,6 @@ function storeRanking(payload: RankedDecisionPayload) {
   }
 }
 
-function downloadRankingJson(payload: RankedDecisionPayload) {
-  try {
-    const json = JSON.stringify(payload, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    const stamp = payload.recordedAt.replace(/[:.]/g, "-");
-    a.href = url;
-    a.download = `decision-ranking-${stamp}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  } catch {
-    // no-op if a download can't be triggered (e.g. a restrictive sandbox)
-  }
-}
-
 // For running inside a Qualtrics survey (or any other page that embeds this app in an
 // iframe): post the full payload up to the parent window so a small script on that page
 // can pick it up and write it into Qualtrics embedded data. A no-op when not iframed
@@ -318,7 +300,6 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onN
     };
 
     storeRanking(payload);
-    downloadRankingJson(payload);
     postPayloadToParent(payload);
 
     questionsWrap.innerHTML = "";

@@ -99,14 +99,14 @@ is untouched by any of this.
   ranking-recorded) and `timeToFirstChoiceMs` (result-shown to their first/top choice,
   tracked via `firstChoiceAt` - set on the first option button clicked anywhere in the
   flow, since rank 1 is always asked first), then builds the full `RankedDecisionPayload`
-  (topic, options, factors, raw + normalized scores, full ranking, timing) and:
-  stores it to `localStorage`, auto-downloads it as a `.json` file (pre-dates the Qualtrics
-  work; may be worth dropping once Qualtrics capture is confirmed working, since a silent
-  download isn't great mid-survey), and - the actual Qualtrics path - `postMessage`s
+  (topic, options, factors, raw + normalized scores, full ranking, timing), stores it to
+  `localStorage`, and - the actual Qualtrics path - `postMessage`s
   `{ source: "decisionLayoutApp", type: "decisionComplete", payload }` to `window.parent`
-  (a no-op if not iframed). A matching script on the Qualtrics question page needs to
-  listen for that message and call `Qualtrics.SurveyEngine.setEmbeddedData(...)` - that
-  half lives in the Qualtrics survey itself, not this repo.
+  (a no-op if not iframed). No `.json` file is ever auto-downloaded (removed - it predated
+  the postMessage path and would've been an odd mid-survey download prompt). A matching
+  script on the Qualtrics question page needs to listen for that message and call
+  `Qualtrics.SurveyEngine.setEmbeddedData(...)` - that half lives in the Qualtrics survey
+  itself, not this repo.
 
 ## Conventions to follow
 - No local dev environment on the user's end — everything goes through GitHub's web
