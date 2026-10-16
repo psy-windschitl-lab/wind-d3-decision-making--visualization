@@ -81,6 +81,33 @@ comfortably, or debug a failed build themselves. Practical implications:
 - Query params driving behavior: `layout` (wizard/vanilla/gp1/gp2/gp3/gp4/manual/table),
   `wadd` (always/off/toggleable), `intro` (which intro page).
 
+## Qualtrics data capture (wizard/table only)
+Intended to run inside a Qualtrics survey (embedded in an iframe), with the full response
+captured into Qualtrics' own data export - not just left in the respondent's browser.
+Scoped entirely to `decisionFlow === "rankedInline"` (wizard/table), since those are the
+only versions meant to run in Qualtrics; GP1-4/vanilla's modal flow (`decisionWorkflow.ts`)
+is untouched by any of this.
+- `layoutBuilderFactory.ts` captures two timestamps: `appStartedAt` (page mount) and
+  `layoutShownAt` (set inside `revealLayout`, i.e. once their own - not the tutorial's -
+  result is actually shown). Only the `rankedInline` branch's `getRankedDecisionData`
+  wraps the normal `getDecisionData` with these timestamps plus the raw, as-entered inputs
+  `rawFactorImportance` (each factor's 1-5 importance rating) and `rawScores` (each
+  factor/option cell's 1-5 Likert rating) - `scores`/`waddScores` from `getDecisionData`
+  stay normalized to -1..1 for the chart/WADD math, so the raw fields are what to read for
+  "what did they actually type/select."
+- `rankedDecisionWorkflow.ts`'s `finalize()` computes `totalTimeInAppMs` (mount to
+  ranking-recorded) and `timeToFirstChoiceMs` (result-shown to their first/top choice,
+  tracked via `firstChoiceAt` - set on the first option button clicked anywhere in the
+  flow, since rank 1 is always asked first), then builds the full `RankedDecisionPayload`
+  (topic, options, factors, raw + normalized scores, full ranking, timing) and:
+  stores it to `localStorage`, auto-downloads it as a `.json` file (pre-dates the Qualtrics
+  work; may be worth dropping once Qualtrics capture is confirmed working, since a silent
+  download isn't great mid-survey), and - the actual Qualtrics path - `postMessage`s
+  `{ source: "decisionLayoutApp", type: "decisionComplete", payload }` to `window.parent`
+  (a no-op if not iframed). A matching script on the Qualtrics question page needs to
+  listen for that message and call `Qualtrics.SurveyEngine.setEmbeddedData(...)` - that
+  half lives in the Qualtrics survey itself, not this repo.
+
 ## Conventions to follow
 - No local dev environment on the user's end — everything goes through GitHub's web
   editor and Amplify's auto-deploy, so a PR needs to be complete and self-contained.

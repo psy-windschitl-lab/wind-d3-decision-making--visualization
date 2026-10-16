@@ -112,6 +112,11 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     const layoutDataset = root.parentElement?.dataset.layout;
     const isGp2 = layoutDataset === "gp2" || layoutDataset === "gp3" || layoutDataset === "gp4"
       || layoutDataset === "wizard" || layoutDataset === "table";
+    // Qualtrics-data-capture timing (wizard/table only - see getRankedDecisionData below):
+    // when this builder page was mounted, and when the person's own (non-tutorial) result
+    // was revealed. layoutShownAt is set once, in revealLayout further down.
+    const appStartedAt = Date.now();
+    let layoutShownAt: number | null = null;
     const supportsWADD = config.kind === "chart" || config.kind === "table";
     const waddSetting = ctx.query.get("wadd")?.toLowerCase();
     const waddMode = waddSetting === "on"
@@ -1132,6 +1137,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         finished = true;
         reachedFinish = true;
         const revealLayout = () => {
+          layoutShownAt = Date.now();
           if (config.previewMode === "after-finish") {
             previewCard.style.display = "";
           }
@@ -1427,10 +1433,19 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     };
 
     if (config.decisionFlow === "rankedInline") {
+      // Adds the raw, as-entered inputs (not the normalized -1..1 scores getDecisionData
+      // returns) plus the timing markers above - only wizard/table use this decisionFlow,
+      // so this richer payload never reaches GP1-4/vanilla's modal flow.
+      const getRankedDecisionData = () => ({
+        ...getDecisionData(),
+        rawFactorImportance: Object.fromEntries(state.factors.map(f => [f.id, f.uiImportance])),
+        rawScores: JSON.parse(JSON.stringify(state.scoresUI)),
+        timing: { appStartedAt, layoutShownAt },
+      });
       attachRankedDecisionWorkflow({
         host: decisionHost,
         vizEl,
-        getDecisionData,
+        getDecisionData: getRankedDecisionData,
         onNext: () => renderPostDecisionLanding(root),
       });
     } else {

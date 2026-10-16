@@ -16,6 +16,16 @@ type DecisionData = {
   waddScores: Record<string, number>;
   layoutName?: string | null;
   decisionTopic?: string;
+  // The raw values the person actually entered/selected, as opposed to `scores` (which is
+  // normalized to -1..1 for the chart/WADD math): each factor's 1-5 importance rating, and
+  // each factor/option cell's 1-5 Likert rating. For Qualtrics data capture - see below.
+  rawFactorImportance?: Record<string, number>;
+  rawScores?: DecisionScores;
+  // Fixed timestamps (ms epoch) supplied by layoutBuilderFactory.ts: when this builder
+  // page was first mounted, and when the person's own (non-tutorial) result was revealed.
+  // Used below to compute how long they spent in the app and how long it took them to
+  // make their first (top) choice once they could see their result.
+  timing?: { appStartedAt: number; layoutShownAt: number | null };
 };
 
 type RankedAttachParams = {
@@ -48,6 +58,16 @@ type RankedDecisionPayload = {
     factors: DecisionFactor[];
     scores: DecisionScores;
     waddScores: Record<string, number>;
+    rawFactorImportance: Record<string, number>;
+    rawScores: DecisionScores;
+  };
+  timing: {
+    // ms from when the builder page was mounted to when the ranking was recorded (null
+    // if the timestamp wasn't supplied).
+    totalTimeInAppMs: number | null;
+    // ms from when their own result was first shown to when they made their first
+    // (top-ranked) choice (null if either timestamp is missing).
+    timeToFirstChoiceMs: number | null;
   };
 };
 
@@ -86,6 +106,20 @@ function downloadRankingJson(payload: RankedDecisionPayload) {
   }
 }
 
+// For running inside a Qualtrics survey (or any other page that embeds this app in an
+// iframe): post the full payload up to the parent window so a small script on that page
+// can pick it up and write it into Qualtrics embedded data. A no-op when not iframed
+// (e.g. testing the app on its own), since window.parent === window in that case.
+function postPayloadToParent(payload: RankedDecisionPayload) {
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ source: "decisionLayoutApp", type: "decisionComplete", payload }, "*");
+    }
+  } catch {
+    // no-op if postMessage isn't available (e.g. a restrictive sandbox)
+  }
+}
+
 export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onNext }: RankedAttachParams) {
   if (!host) return;
 
@@ -105,6 +139,9 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onN
   // left) is appended only at finalize time, not during the asking process.
   const rankedOptionIds: string[] = [];
   let resizeHandler: (() => void) | null = null;
+  // Set once, on the very first option button clicked anywhere in this flow - since rank
+  // 1 ("Which option are you choosing?") is always asked first, this is their first choice.
+  let firstChoiceAt: number | null = null;
 
   trigger.addEventListener("click", () => {
     if (started) return;
@@ -202,6 +239,7 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onN
         }
         if (state === "open") {
           btn.addEventListener("click", () => {
+            if (firstChoiceAt === null) firstChoiceAt = Date.now();
             rankedOptionIds.push(opt.id);
             renderQuestions();
           });
@@ -238,6 +276,13 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onN
     const fullRanking = [...rankedOptionIds, ...remaining];
     const waddScores = data.waddScores;
 
+    const appStartedAt = data.timing?.appStartedAt ?? null;
+    const layoutShownAt = data.timing?.layoutShownAt ?? null;
+    const totalTimeInAppMs = appStartedAt !== null ? Date.now() - appStartedAt : null;
+    const timeToFirstChoiceMs = (firstChoiceAt !== null && layoutShownAt !== null)
+      ? firstChoiceAt - layoutShownAt
+      : null;
+
     const payload: RankedDecisionPayload = {
       recordedAt: new Date().toISOString(),
       decisionTopic: data.decisionTopic,
@@ -266,11 +311,15 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onN
         })),
         scores: data.scores ?? {},
         waddScores,
+        rawFactorImportance: data.rawFactorImportance ?? {},
+        rawScores: data.rawScores ?? {},
       },
+      timing: { totalTimeInAppMs, timeToFirstChoiceMs },
     };
 
     storeRanking(payload);
     downloadRankingJson(payload);
+    postPayloadToParent(payload);
 
     questionsWrap.innerHTML = "";
     const doneBlock = document.createElement("div");
