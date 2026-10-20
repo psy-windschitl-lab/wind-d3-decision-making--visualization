@@ -102,6 +102,20 @@ function postPayloadToParent(payload: RankedDecisionPayload) {
   }
 }
 
+// Sent separately from (and later than) decisionComplete above - decisionComplete fires
+// as soon as the ranking is recorded, so the data is captured right away, but the survey
+// shouldn't jump forward until the person actually clicks "Yes, ready to move on." This
+// is that second, deliberate signal for Qualtrics to advance on.
+function postReadyToAdvance() {
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ source: "decisionLayoutApp", type: "readyToAdvance" }, "*");
+    }
+  } catch {
+    // no-op if postMessage isn't available (e.g. a restrictive sandbox)
+  }
+}
+
 export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onNext }: RankedAttachParams) {
   if (!host) return;
 
@@ -314,7 +328,10 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onN
     nextBtn.type = "button";
     nextBtn.className = "decision-btn";
     nextBtn.textContent = "Yes, ready to move on.";
-    nextBtn.addEventListener("click", () => onNext?.());
+    nextBtn.addEventListener("click", () => {
+      postReadyToAdvance();
+      onNext?.();
+    });
     doneBlock.appendChild(nextBtn);
 
     questionsWrap.appendChild(doneBlock);

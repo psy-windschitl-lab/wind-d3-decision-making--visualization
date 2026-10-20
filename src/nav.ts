@@ -18,42 +18,51 @@ export function renderNav(container: HTMLElement, ctx: PageCtx) {
     ? `?layout=${layout}&wadd=${wadd}${intro ? `&intro=${intro}` : ""}`
     : "";
 
+  // Embedded in a Qualtrics survey, wizard/table shouldn't offer a way to leave the
+  // current decision (there's no separate "rest of the survey" to navigate within -
+  // Qualtrics itself owns that) or restart one, so these two links are dropped entirely.
+  const hideDecisionNavLinks = (layout || "").toLowerCase() === "wizard" || (layout || "").toLowerCase() === "table";
+
   container.innerHTML = `
-    <a href="/${carryQuery}" id="navIntro">Introduction</a>
-    <a href="/builder" id="navNewDecision">New Decision</a>
+    ${hideDecisionNavLinks ? "" : `<a href="/${carryQuery}" id="navIntro">Introduction</a>`}
+    ${hideDecisionNavLinks ? "" : `<a href="/builder" id="navNewDecision">New Decision</a>`}
     ${isResearch ? "" : `<a href="/about${carryQuery}" id="navAbout">About</a>`}
   `;
 
   // "New Decision": always asks for confirmation, and - if the current URL already has
   // all 3 variables set - returns to that exact same combination directly, skipping the
   // "Choose a Version" chooser, rather than sending the person through it again.
-  const newDecisionLink = container.querySelector<HTMLAnchorElement>("#navNewDecision")!;
-  newDecisionLink.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (!window.confirm("Are you sure you want to start on a new decision?")) return;
-    const base = layout && wadd
-      ? `/builder?layout=${layout}&wadd=${wadd}${intro ? `&intro=${intro}` : ""}`
-      : "/builder";
-    // Guarantees a fresh render even if this is the exact same URL the person is
-    // already on, which the router would otherwise silently treat as a no-op.
-    const target = `${base}${base.includes("?") ? "&" : "?"}_r=${Date.now()}`;
-    ctx.navigate(target);
-  });
+  const newDecisionLink = container.querySelector<HTMLAnchorElement>("#navNewDecision");
+  if (newDecisionLink) {
+    newDecisionLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (!window.confirm("Are you sure you want to start on a new decision?")) return;
+      const base = layout && wadd
+        ? `/builder?layout=${layout}&wadd=${wadd}${intro ? `&intro=${intro}` : ""}`
+        : "/builder";
+      // Guarantees a fresh render even if this is the exact same URL the person is
+      // already on, which the router would otherwise silently treat as a no-op.
+      const target = `${base}${base.includes("?") ? "&" : "?"}_r=${Date.now()}`;
+      ctx.navigate(target);
+    });
+  }
 
   // "Introduction" and "About" both behave as overlays on top of the current page while
   // the person is mid-decision (on /builder), instead of a real page navigation - a real
   // navigation would unmount the builder entirely and silently lose all their in-progress
   // answers, since nothing is persisted outside that page's own in-memory state. Once
   // they're not mid-decision, these are just normal links.
-  const introLink = container.querySelector<HTMLAnchorElement>("#navIntro")!;
-  introLink.addEventListener("click", (e) => {
-    e.preventDefault();
-    if (isOnBuilder) {
-      showIntroOverlay(ctx);
-    } else {
-      ctx.navigate(`/${carryQuery}`);
-    }
-  });
+  const introLink = container.querySelector<HTMLAnchorElement>("#navIntro");
+  if (introLink) {
+    introLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      if (isOnBuilder) {
+        showIntroOverlay(ctx);
+      } else {
+        ctx.navigate(`/${carryQuery}`);
+      }
+    });
+  }
 
   const aboutLink = container.querySelector<HTMLAnchorElement>("#navAbout");
   if (aboutLink) {

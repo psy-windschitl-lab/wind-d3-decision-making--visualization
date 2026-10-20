@@ -102,11 +102,25 @@ is untouched by any of this.
   (topic, options, factors, raw + normalized scores, full ranking, timing), stores it to
   `localStorage`, and - the actual Qualtrics path - `postMessage`s
   `{ source: "decisionLayoutApp", type: "decisionComplete", payload }` to `window.parent`
-  (a no-op if not iframed). No `.json` file is ever auto-downloaded (removed - it predated
-  the postMessage path and would've been an odd mid-survey download prompt). A matching
-  script on the Qualtrics question page needs to listen for that message and call
-  `Qualtrics.SurveyEngine.setEmbeddedData(...)` - that half lives in the Qualtrics survey
-  itself, not this repo.
+  (a no-op if not iframed) as soon as the ranking is recorded. No `.json` file is ever
+  auto-downloaded (removed - it predated the postMessage path and would've been an odd
+  mid-survey download prompt).
+- A *second*, separate message - `{ source: "decisionLayoutApp", type: "readyToAdvance" }`
+  - fires only when the person clicks the "Yes, ready to move on." button, deliberately
+  later than `decisionComplete` so Qualtrics doesn't jump the survey forward before they've
+  actually confirmed they're done. `layoutBuilderFactory.ts` passes no `onNext` for the
+  `rankedInline` branch (unlike the modal flow, which still uses `onNext` to show
+  `renderPostDecisionLanding`) - wizard/table have nothing left to do in-app once that
+  message is sent, since Qualtrics itself owns moving on to its next question.
+- A matching script on the Qualtrics question page needs to listen for both messages:
+  write the `decisionComplete` payload into embedded data via
+  `Qualtrics.SurveyEngine.setEmbeddedData(...)`, then call
+  `Qualtrics.SurveyEngine.clickNextButton()` on `readyToAdvance` - that half lives in the
+  Qualtrics survey itself, not this repo.
+- `src/nav.ts`'s `renderNav` drops the "Introduction" and "New Decision" links entirely
+  when `?layout=` is `wizard` or `table` (checked directly off the query param, so it holds
+  across every page, not just `/builder`) - embedded in a Qualtrics survey, there's no
+  separate "rest of the app" to navigate to or decision to restart. "About" is unaffected.
 
 ## Conventions to follow
 - No local dev environment on the user's end — everything goes through GitHub's web

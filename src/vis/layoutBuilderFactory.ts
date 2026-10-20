@@ -1442,11 +1442,14 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         rawScores: JSON.parse(JSON.stringify(state.scoresUI)),
         timing: { appStartedAt, layoutShownAt },
       });
+      // No onNext here (unlike the modal flow below) - wizard/table run embedded in a
+      // Qualtrics survey, so "ready to move on" is handled entirely by the
+      // readyToAdvance postMessage in rankedDecisionWorkflow.ts (Qualtrics itself
+      // advances the survey); there's no in-app placeholder page to show.
       attachRankedDecisionWorkflow({
         host: decisionHost,
         vizEl,
         getDecisionData: getRankedDecisionData,
-        onNext: () => renderPostDecisionLanding(root),
       });
     } else {
       attachDecisionWorkflow({
