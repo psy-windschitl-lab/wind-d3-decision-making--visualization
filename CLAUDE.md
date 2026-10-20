@@ -117,6 +117,16 @@ is untouched by any of this.
   `Qualtrics.SurveyEngine.setEmbeddedData(...)`, then call
   `Qualtrics.SurveyEngine.clickNextButton()` on `readyToAdvance` - that half lives in the
   Qualtrics survey itself, not this repo.
+- A survey can embed this app more than once (e.g. wizard then table, or the same layout
+  twice) - each embedded instance's iframe URL can carry an `?instance=` query param (any
+  label, e.g. `task1`), which `layoutBuilderFactory.ts` reads once (`instanceLabel`) and
+  threads through `getRankedDecisionData` into `DecisionData.instanceLabel`. Both messages
+  echo it back (`decisionComplete`'s `payload.instance`, `readyToAdvance`'s `instance`),
+  so each embedded instance's Qualtrics-side listener can confirm a message is really its
+  own before writing to its own set of embedded data fields/clicking its own Next button -
+  without this, every instance would share the same message schema and silently stomp on
+  each other's data (or, in a survey layout that keeps multiple questions' JavaScript
+  alive at once, cross-react to the wrong instance's messages entirely).
 - `src/nav.ts`'s `renderNav` drops the "Introduction" and "New Decision" links entirely
   when `?layout=` is `wizard` or `table` (checked directly off the query param, so it holds
   across every page, not just `/builder`) - embedded in a Qualtrics survey, there's no

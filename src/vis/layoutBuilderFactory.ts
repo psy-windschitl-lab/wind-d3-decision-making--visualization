@@ -117,6 +117,10 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     // was revealed. layoutShownAt is set once, in revealLayout further down.
     const appStartedAt = Date.now();
     let layoutShownAt: number | null = null;
+    // An optional `?instance=` query param (e.g. "task1") set on this iframe's own URL,
+    // for a Qualtrics survey that embeds this app more than once - see
+    // getRankedDecisionData below and rankedDecisionWorkflow.ts's instanceLabel.
+    const instanceLabel = ctx.query.get("instance");
     const supportsWADD = config.kind === "chart" || config.kind === "table";
     const waddSetting = ctx.query.get("wadd")?.toLowerCase();
     const waddMode = waddSetting === "on"
@@ -1441,6 +1445,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         rawFactorImportance: Object.fromEntries(state.factors.map(f => [f.id, f.uiImportance])),
         rawScores: JSON.parse(JSON.stringify(state.scoresUI)),
         timing: { appStartedAt, layoutShownAt },
+        instanceLabel,
       });
       // No onNext here (unlike the modal flow below) - wizard/table run embedded in a
       // Qualtrics survey, so "ready to move on" is handled entirely by the

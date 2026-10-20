@@ -26,6 +26,12 @@ type DecisionData = {
   // Used below to compute how long they spent in the app and how long it took them to
   // make their first (top) choice once they could see their result.
   timing?: { appStartedAt: number; layoutShownAt: number | null };
+  // Whatever was passed as the `instance` URL query param (e.g. "task1"), echoed back in
+  // every message this module posts - lets a Qualtrics survey that embeds this app more
+  // than once (even the same layout twice) tell which embedded instance a given message
+  // came from, instead of every instance's data landing in the same place. null if the
+  // query param wasn't set (e.g. only one instance is ever embedded in a given survey).
+  instanceLabel?: string | null;
 };
 
 type RankedAttachParams = {
@@ -46,6 +52,8 @@ type RankedDecisionPayload = {
   recordedAt: string;
   decisionTopic?: string;
   layoutName?: string | null;
+  // See DecisionData.instanceLabel above.
+  instance?: string | null;
   ranking: Array<{
     rank: number;
     optionId: string;
@@ -105,11 +113,13 @@ function postPayloadToParent(payload: RankedDecisionPayload) {
 // Sent separately from (and later than) decisionComplete above - decisionComplete fires
 // as soon as the ranking is recorded, so the data is captured right away, but the survey
 // shouldn't jump forward until the person actually clicks "Yes, ready to move on." This
-// is that second, deliberate signal for Qualtrics to advance on.
-function postReadyToAdvance() {
+// is that second, deliberate signal for Qualtrics to advance on. Carries the same
+// instance label as decisionComplete, so if a survey embeds this app more than once, each
+// embedded instance's "ready to advance" only triggers that same instance's own question.
+function postReadyToAdvance(instanceLabel: string | null | undefined) {
   try {
     if (window.parent && window.parent !== window) {
-      window.parent.postMessage({ source: "decisionLayoutApp", type: "readyToAdvance" }, "*");
+      window.parent.postMessage({ source: "decisionLayoutApp", type: "readyToAdvance", instance: instanceLabel ?? null }, "*");
     }
   } catch {
     // no-op if postMessage isn't available (e.g. a restrictive sandbox)
@@ -283,6 +293,7 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onN
       recordedAt: new Date().toISOString(),
       decisionTopic: data.decisionTopic,
       layoutName: data.layoutName,
+      instance: data.instanceLabel ?? null,
       ranking: fullRanking.map((id, idx) => {
         const opt = data.options.find(o => o.id === id)!;
         return {
@@ -329,7 +340,7 @@ export function attachRankedDecisionWorkflow({ host, vizEl, getDecisionData, onN
     nextBtn.className = "decision-btn";
     nextBtn.textContent = "Yes, ready to move on.";
     nextBtn.addEventListener("click", () => {
-      postReadyToAdvance();
+      postReadyToAdvance(data.instanceLabel);
       onNext?.();
     });
     doneBlock.appendChild(nextBtn);
