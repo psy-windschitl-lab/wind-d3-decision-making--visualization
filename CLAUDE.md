@@ -30,8 +30,8 @@ comfortably, or debug a failed build themselves. Practical implications:
   the matching module from `src/vis/*.ts` (lowercased filename or its `meta.name`), and
   renders it. **Any new file added under `src/vis/` with a default-exported `Page` is
   auto-registered as a layout option** — no manual wiring needed beyond that file.
-- `src/vis/layoutBuilderFactory.ts` — the shared factory behind most layouts (`wizard`,
-  `vanilla`, `gp1`, `gp2`, `gp3`, `gp4`, `table`). Individual files like `src/vis/gp2.ts`
+- `src/vis/layoutBuilderFactory.ts` — the shared factory behind most layouts (`r1layout`,
+  `vanilla`, `gp1`, `gp2`, `gp3`, `gp4`, `r1table`). Individual files like `src/vis/gp2.ts`
   just call `createBuilderLayout({...config})` with different options (`previewMode`,
   `kind`, `restrictPreviewUntilFinish`, `step4Style`). Prefer adding config branches / a
   layout-name check here over duplicating this file — it's ~1000 lines, and duplicating it
@@ -39,17 +39,22 @@ comfortably, or debug a failed build themselves. Practical implications:
   `gp3` is GP2 plus `step4Style: "sequential"` (Step 4 asks one rating question at a time
   instead of grouping a factor's options together). `gp4` is GP2 plus
   `step4Style: "sequentialWithFactorIntro"` (like gp3, but each factor first gets its own
-  two-line intro before its one-at-a-time questions). `wizard` is GP4 plus
-  `decisionFlow: "rankedInline"` (see below) - kept as its own file only so further
-  wizard-specific tweaks can be made without touching `gp4.ts`. `table` is the same as
-  `wizard` in every respect except `kind: "table"` (a table instead of a chart), the
+  two-line intro before its one-at-a-time questions). `r1layout` (file `src/vis/r1layout.ts`,
+  `meta.name: "r1layout"` - formerly named `wizard`, renamed since "wizard" wasn't
+  descriptive; "R" is for "research", so a later, similar version might become `r2layout`)
+  is GP4 plus `decisionFlow: "rankedInline"` (see below) - kept as its own file only so
+  further r1layout-specific tweaks can be made without touching `gp4.ts`. `r1table` (file
+  `src/vis/r1table.ts`, `meta.name: "r1table"` - formerly named `table`) is the same as
+  `r1layout` in every respect except `kind: "table"` (a table instead of a chart), the
   tutorial's opening line (promises a table instead of a layout, via `tutorialOptions` in
   `layoutBuilderFactory.ts`), and the "YOUR ___" reveal heading reading "YOUR Table"
-  instead of "YOUR Layout" (same isGp2 branch, just keyed off `config.kind === "table"`).
+  instead of "YOUR Layout" (same isGp2 branch, just keyed off `config.kind === "table"` -
+  note `kind` is a separate, unrelated setting from the `r1table` layout name; it's also
+  `"table"` purely by coincidence of wording).
   `decisionFlow` controls the final "pick your option" step: omit for the default (a modal
   dialog that covers the layout/table while picking - still used by gp2/gp3/gp4/gp1/etc.),
-  or `"rankedInline"` (wizard/table) to build a full preference ranking inline below the
-  layout/table instead, with response buttons aligned under each option's own column -
+  or `"rankedInline"` (r1layout/r1table) to build a full preference ranking inline below
+  the layout/table instead, with response buttons aligned under each option's own column -
   the chart's column header rects for chart-kind layouts, or the result `<table>`'s own
   last N header `<th>`s for `table` (see `src/lib/rankedDecisionWorkflow.ts`'s
   `measureColumns`).
@@ -69,24 +74,24 @@ comfortably, or debug a failed build themselves. Practical implications:
   fully-revealed table) is fed into every subsequent table build via a `<colgroup>`, so
   every column - especially the option columns - sits at its final position from the very
   first step instead of shifting once factor rows/values appear. **Currently
-  GP2/GP3/GP4/wizard/table-only** — gated in `layoutBuilderFactory.ts` via the `isGp2`
+  GP2/GP3/GP4/r1layout/r1table-only** — gated in `layoutBuilderFactory.ts` via the `isGp2`
   variable (`root.parentElement?.dataset.layout` being `"gp2"`, `"gp3"`, `"gp4"`,
-  `"wizard"`, or `"table"`). Don't let it leak into other layouts (GP1, vanilla, etc.)
+  `"r1layout"`, or `"r1table"`). Don't let it leak into other layouts (GP1, vanilla, etc.)
   unless explicitly asked to expand its scope. `runLayoutTutorial`'s second argument,
   `{ introText?, kind? }`, overrides the opening line and/or picks `"table"` instead of
   the default `"chart"` (both set by `layoutBuilderFactory.ts`'s `tutorialOptions` for
   `config.kind === "table"`).
 - `src/pages/chooser.ts` — the "Choose a Version" picker; layout options are described
   here for end users.
-- Query params driving behavior: `layout` (wizard/vanilla/gp1/gp2/gp3/gp4/manual/table),
+- Query params driving behavior: `layout` (r1layout/vanilla/gp1/gp2/gp3/gp4/manual/r1table),
   `wadd` (always/off/toggleable), `intro` (which intro page).
 
-## Qualtrics data capture (wizard/table only)
+## Qualtrics data capture (r1layout/r1table only)
 Intended to run inside a Qualtrics survey (embedded in an iframe), with the full response
 captured into Qualtrics' own data export - not just left in the respondent's browser.
-Scoped entirely to `decisionFlow === "rankedInline"` (wizard/table), since those are the
-only versions meant to run in Qualtrics; GP1-4/vanilla's modal flow (`decisionWorkflow.ts`)
-is untouched by any of this.
+Scoped entirely to `decisionFlow === "rankedInline"` (r1layout/r1table), since those are
+the only versions meant to run in Qualtrics; GP1-4/vanilla's modal flow
+(`decisionWorkflow.ts`) is untouched by any of this.
 - `layoutBuilderFactory.ts` captures two timestamps: `appStartedAt` (page mount) and
   `layoutShownAt` (set inside `revealLayout`, i.e. once their own - not the tutorial's -
   result is actually shown). Only the `rankedInline` branch's `getRankedDecisionData`
@@ -110,17 +115,18 @@ is untouched by any of this.
   later than `decisionComplete` so Qualtrics doesn't jump the survey forward before they've
   actually confirmed they're done. `layoutBuilderFactory.ts` passes no `onNext` for the
   `rankedInline` branch (unlike the modal flow, which still uses `onNext` to show
-  `renderPostDecisionLanding`) - wizard/table have nothing left to do in-app once that
+  `renderPostDecisionLanding`) - r1layout/r1table have nothing left to do in-app once that
   message is sent, since Qualtrics itself owns moving on to its next question.
 - A matching script on the Qualtrics question page needs to listen for both messages:
   write the `decisionComplete` payload into embedded data via
   `Qualtrics.SurveyEngine.setEmbeddedData(...)`, then call
   `Qualtrics.SurveyEngine.clickNextButton()` on `readyToAdvance` - that half lives in the
   Qualtrics survey itself, not this repo.
-- A survey can embed this app more than once (e.g. wizard then table, or the same layout
-  twice) - each embedded instance's iframe URL can carry an `?instance=` query param (any
-  label, e.g. `task1`), which `layoutBuilderFactory.ts` reads once (`instanceLabel`) and
-  threads through `getRankedDecisionData` into `DecisionData.instanceLabel`. Both messages
+- A survey can embed this app more than once (e.g. r1layout then r1table, or the same
+  layout twice) - each embedded instance's iframe URL can carry an `?instance=` query
+  param (any label, e.g. `task1`), which `layoutBuilderFactory.ts` reads once
+  (`instanceLabel`) and threads through `getRankedDecisionData` into
+  `DecisionData.instanceLabel`. Both messages
   echo it back (`decisionComplete`'s `payload.instance`, `readyToAdvance`'s `instance`),
   so each embedded instance's Qualtrics-side listener can confirm a message is really its
   own before writing to its own set of embedded data fields/clicking its own Next button -
@@ -128,9 +134,10 @@ is untouched by any of this.
   each other's data (or, in a survey layout that keeps multiple questions' JavaScript
   alive at once, cross-react to the wrong instance's messages entirely).
 - `src/nav.ts`'s `renderNav` drops the "Introduction" and "New Decision" links entirely
-  when `?layout=` is `wizard` or `table` (checked directly off the query param, so it holds
-  across every page, not just `/builder`) - embedded in a Qualtrics survey, there's no
-  separate "rest of the app" to navigate to or decision to restart. "About" is unaffected.
+  when `?layout=` is `r1layout` or `r1table` (checked directly off the query param, so it
+  holds across every page, not just `/builder`) - embedded in a Qualtrics survey, there's
+  no separate "rest of the app" to navigate to or decision to restart. "About" is
+  unaffected.
 
 ## Conventions to follow
 - No local dev environment on the user's end — everything goes through GitHub's web

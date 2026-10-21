@@ -26,8 +26,8 @@ type BuilderConfig = {
   step4Style?: "sequential" | "sequentialWithFactorIntro";
   // Controls how the final "pick your option" step works. Omit for the default: a modal
   // dialog ("Choose an option") that covers the layout while picking. "rankedInline"
-  // (wizard-only) replaces that with ranking questions appended inline below the layout,
-  // with response buttons aligned under each option's own column - see
+  // (r1layout/r1table-only) replaces that with ranking questions appended inline below
+  // the layout, with response buttons aligned under each option's own column - see
   // attachRankedDecisionWorkflow in src/lib/rankedDecisionWorkflow.ts.
   decisionFlow?: "modal" | "rankedInline";
 };
@@ -102,19 +102,20 @@ const signedToLikert = (s: number) => Math.round(3 + s * 2);
 export function createBuilderLayout(config: BuilderConfig): Page {
   return (root, ctx) => {
     // The layout-interpretation tutorial (and its replay link), the "YOUR Layout" reveal
-    // page, and its related copy are, for now, a GP2/GP3/GP4/wizard/table-only touch -
+    // page, and its related copy are, for now, a GP2/GP3/GP4/r1layout/r1table-only touch -
     // other layouts sharing this same factory (GP1, vanilla, etc.) are unaffected. root's
     // parent is the outer element LayoutBuilder.ts stamps with the resolved, lower-cased
-    // layout name (see LayoutBuilder.ts's `root.dataset.layout = resolvedKey`). "wizard"
-    // and "table" were folded in here (rather than just copying step4Style) because
+    // layout name (see LayoutBuilder.ts's `root.dataset.layout = resolvedKey`). "r1layout"
+    // and "r1table" were folded in here (rather than just copying step4Style) because
     // they're meant to be identical to GP4 in every respect but their final kind of
     // preview (chart vs. table).
     const layoutDataset = root.parentElement?.dataset.layout;
     const isGp2 = layoutDataset === "gp2" || layoutDataset === "gp3" || layoutDataset === "gp4"
-      || layoutDataset === "wizard" || layoutDataset === "table";
-    // Qualtrics-data-capture timing (wizard/table only - see getRankedDecisionData below):
-    // when this builder page was mounted, and when the person's own (non-tutorial) result
-    // was revealed. layoutShownAt is set once, in revealLayout further down.
+      || layoutDataset === "r1layout" || layoutDataset === "r1table";
+    // Qualtrics-data-capture timing (r1layout/r1table only - see getRankedDecisionData
+    // below): when this builder page was mounted, and when the person's own
+    // (non-tutorial) result was revealed. layoutShownAt is set once, in revealLayout
+    // further down.
     const appStartedAt = Date.now();
     let layoutShownAt: number | null = null;
     // An optional `?instance=` query param (e.g. "task1") set on this iframe's own URL,
@@ -1438,8 +1439,8 @@ export function createBuilderLayout(config: BuilderConfig): Page {
 
     if (config.decisionFlow === "rankedInline") {
       // Adds the raw, as-entered inputs (not the normalized -1..1 scores getDecisionData
-      // returns) plus the timing markers above - only wizard/table use this decisionFlow,
-      // so this richer payload never reaches GP1-4/vanilla's modal flow.
+      // returns) plus the timing markers above - only r1layout/r1table use this
+      // decisionFlow, so this richer payload never reaches GP1-4/vanilla's modal flow.
       const getRankedDecisionData = () => ({
         ...getDecisionData(),
         rawFactorImportance: Object.fromEntries(state.factors.map(f => [f.id, f.uiImportance])),
@@ -1447,7 +1448,7 @@ export function createBuilderLayout(config: BuilderConfig): Page {
         timing: { appStartedAt, layoutShownAt },
         instanceLabel,
       });
-      // No onNext here (unlike the modal flow below) - wizard/table run embedded in a
+      // No onNext here (unlike the modal flow below) - r1layout/r1table run embedded in a
       // Qualtrics survey, so "ready to move on" is handled entirely by the
       // readyToAdvance postMessage in rankedDecisionWorkflow.ts (Qualtrics itself
       // advances the survey); there's no in-app placeholder page to show.

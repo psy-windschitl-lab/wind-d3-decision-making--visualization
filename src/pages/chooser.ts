@@ -5,8 +5,8 @@ import type { Page } from "../router";
 // any of them is left out of the URL.
 export const LAYOUT_OPTIONS: Array<{ value: string; label: string; description: string }> = [
   { value: "manual", label: "manual", description: "Build the layout yourself directly — no guided questions." },
-  { value: "wizard", label: "wizard", description: "Identical to GP4: guided questions, the Julie tutorial, and the \"YOUR Layout\" reveal page." },
-  { value: "table", label: "table", description: "Identical to wizard, but shows a table instead of a layout." },
+  { value: "r1layout", label: "r1layout", description: "Identical to GP4: guided questions, the Julie tutorial, and the \"YOUR Layout\" reveal page." },
+  { value: "r1table", label: "r1table", description: "Identical to r1layout, but shows a table instead of a layout." },
   { value: "vanilla", label: "vanilla", description: "Answer guided questions; the layout updates live as you go, instead of appearing only at the end." },
   { value: "GP1", label: "GP1", description: "General Public 1 - a version intended for general-public participants, most similar to vanilla." },
   { value: "GP2", label: "GP2", description: "General Public 2 - a more user-friendly version than GP1, based on the wizard flow (guided questions, no live preview)." },
@@ -63,7 +63,7 @@ export function renderVersionChooser(root: HTMLElement, ctx: Parameters<Page>[1]
       <p><code>https://forpwplaying1.d3cre5pk9b538u.amplifyapp.com/</code></p>
       <p>
         If you want avoid this panel next time, then use a link that already embeds values
-        for ALL 3 variables (e.g. <code>?layout=wizard&amp;wadd=off&amp;intro=Intro1</code>).
+        for ALL 3 variables (e.g. <code>?layout=r1layout&amp;wadd=off&amp;intro=Intro1</code>).
       </p>
       <p>
         As a more detailed example, if you would otherwise be using the above URL, you'd
@@ -86,11 +86,11 @@ export function renderVersionChooser(root: HTMLElement, ctx: Parameters<Page>[1]
       <p>
         To skip this page entirely and go straight to the intro panel for a specific
         version, include all three in the link, e.g.
-        <code>?layout=wizard&amp;wadd=off&amp;intro=Intro1</code>.
+        <code>?layout=r1layout&amp;wadd=off&amp;intro=Intro1</code>.
       </p>
       <p>
         To also skip the intro panel and go straight into the tool itself, leave
-        <code>intro</code> out of the link entirely (e.g. <code>?layout=wizard&amp;wadd=off</code>).
+        <code>intro</code> out of the link entirely (e.g. <code>?layout=r1layout&amp;wadd=off</code>).
       </p>
     </div>
   `;

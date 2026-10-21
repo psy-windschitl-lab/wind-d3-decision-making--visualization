@@ -1,4 +1,4 @@
-// A wizard-only alternative to decisionWorkflow.ts's modal "Choose an option" flow. Instead
+// An r1layout/r1table-only alternative to decisionWorkflow.ts's modal "Choose an option" flow. Instead
 // of a dialog that covers the layout, this builds a full preference ranking (not just a
 // single top choice) with questions and response buttons appended inline below the layout,
 // each button aligned under its matching option's own column in the chart. Only as many

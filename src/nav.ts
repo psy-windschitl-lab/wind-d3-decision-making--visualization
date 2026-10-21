@@ -18,10 +18,10 @@ export function renderNav(container: HTMLElement, ctx: PageCtx) {
     ? `?layout=${layout}&wadd=${wadd}${intro ? `&intro=${intro}` : ""}`
     : "";
 
-  // Embedded in a Qualtrics survey, wizard/table shouldn't offer a way to leave the
+  // Embedded in a Qualtrics survey, r1layout/r1table shouldn't offer a way to leave the
   // current decision (there's no separate "rest of the survey" to navigate within -
   // Qualtrics itself owns that) or restart one, so these two links are dropped entirely.
-  const hideDecisionNavLinks = (layout || "").toLowerCase() === "wizard" || (layout || "").toLowerCase() === "table";
+  const hideDecisionNavLinks = (layout || "").toLowerCase() === "r1layout" || (layout || "").toLowerCase() === "r1table";
 
   container.innerHTML = `
     ${hideDecisionNavLinks ? "" : `<a href="/${carryQuery}" id="navIntro">Introduction</a>`}
