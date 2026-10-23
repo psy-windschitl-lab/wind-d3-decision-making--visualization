@@ -112,6 +112,11 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     const layoutDataset = root.parentElement?.dataset.layout;
     const isGp2 = layoutDataset === "gp2" || layoutDataset === "gp3" || layoutDataset === "gp4"
       || layoutDataset === "r1layout" || layoutDataset === "r1table";
+    // r1layout/r1table only - these two are used for a study where participants are given
+    // a printed/physical sheet listing the exact factors to enter, so Step 2's intro text
+    // points them at that sheet instead of the generic "factors might be: Size, Location,
+    // ..." example the other layouts (GP1-4, vanilla) show. See renderStep2 below.
+    const isR1 = layoutDataset === "r1layout" || layoutDataset === "r1table";
     // Qualtrics-data-capture timing (r1layout/r1table only - see getRankedDecisionData
     // below): when this builder page was mounted, and when the person's own
     // (non-tutorial) result was revealed. layoutShownAt is set once, in revealLayout
@@ -592,24 +597,36 @@ export function createBuilderLayout(config: BuilderConfig): Page {
     }
 
     function renderStep2() {
+      const step2Intro = isR1
+        ? `
+          <p style="color:var(--muted); margin:10px 0 0; font-size:1.5em; line-height:1.3">
+            Now specify the <i><b>factors</b></i>, which are the ways in which these options
+            differ. The names of the factors for this decision problem can be found in the
+            far-left column of the sheet. Each row focuses on a different factor. Please
+            enter all the factor names that are listed (one for each row).
+          </p>
+        `
+        : `
+          <p style="color:var(--muted); margin:10px 0 0; font-size:1.5em; line-height:1.3">
+            Now specify the notable ways in which these options differ. These are the
+            <i><b>factors</b></i> that could matter in your decision.
+          </p>
+          <div style="margin-left:60px">
+            <p style="font-size:0.8em; color:var(--muted); margin:12px 0 0">For apartments, factors might be:</p>
+            <ul style="font-size:0.8em; color:var(--muted); margin:0 0 12px; padding-left:24px">
+              <li>Size</li>
+              <li>Location</li>
+              <li>Safety</li>
+              <li>Lease flexibility</li>
+              <li>Cost</li>
+              <li>Style</li>
+            </ul>
+          </div>
+          <p style="margin:0 0 14px">You can list up to ${MAX_FACTORS} factors, but a smaller number like 5-8 might be easier to deal with.</p>
+        `;
       stepHost.innerHTML = `
         <h2 class="h1" style="font-size:1.2rem">Step 2 — Add factors</h2>
-        <p style="color:var(--muted); margin:10px 0 0; font-size:1.5em; line-height:1.3">
-          Now specify the notable ways in which these options differ. These are the
-          <i><b>factors</b></i> that could matter in your decision.
-        </p>
-        <div style="margin-left:60px">
-          <p style="font-size:0.8em; color:var(--muted); margin:12px 0 0">For apartments, factors might be:</p>
-          <ul style="font-size:0.8em; color:var(--muted); margin:0 0 12px; padding-left:24px">
-            <li>Size</li>
-            <li>Location</li>
-            <li>Safety</li>
-            <li>Lease flexibility</li>
-            <li>Cost</li>
-            <li>Style</li>
-          </ul>
-        </div>
-        <p style="margin:0 0 14px">You can list up to ${MAX_FACTORS} factors, but a smaller number like 5-8 might be easier to deal with.</p>
+        ${step2Intro}
         <div id="factors"></div>
         <div style="margin-top:8px">
           <button id="addFactorBtn">Add factor</button>

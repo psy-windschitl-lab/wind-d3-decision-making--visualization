@@ -57,7 +57,11 @@ comfortably, or debug a failed build themselves. Practical implications:
   the layout/table instead, with response buttons aligned under each option's own column -
   the chart's column header rects for chart-kind layouts, or the result `<table>`'s own
   last N header `<th>`s for `table` (see `src/lib/rankedDecisionWorkflow.ts`'s
-  `measureColumns`).
+  `measureColumns`). Step 2 ("Add factors")'s intro text also branches on `isR1`
+  (`layoutDataset === "r1layout" || "r1table"`, defined right next to `isGp2`): r1layout/
+  r1table point participants at factor names listed on a (study-provided, outside-the-app)
+  physical sheet instead of showing the generic "factors might be: Size, Location, ..."
+  example the other layouts (GP1-4, vanilla) use - see `step2Intro` in `renderStep2()`.
 - `src/lib/vis.ts` — the real `DecisionLayoutChart` D3 component (rows = factors, height
   proportional to importance weight; columns = options; cells fill green/brown based on
   score). `src/DecisionLayoutChart.ts` is an older/simpler version — don't confuse the two;
